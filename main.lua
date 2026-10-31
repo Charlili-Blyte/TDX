@@ -1,9 +1,8 @@
 --[[
-    🟩 TDX MACRO HUB V6 - WINDUI EDITION
-    Features: Premium UI, Joins, Recorder, Auto-Farm, Security.
+    🟩 TDX MACRO HUB V9 - WINDUI EDITION
+    Features: Premium UI, Global Keybinds, TDX-Specific Joins, Recorder, Auto-Farm.
 --]]
 
--- Load WindUI
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Players = game:GetService("Players")
@@ -13,14 +12,10 @@ local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
--- ==========================================
--- 🛡️ SECURITY (ANTI-KICK / ANTI-AFK)
--- ==========================================
+-- 🛡️ SECURITY
 pcall(function()
     local oldKick = hookmetamethod(game, "__namecall", function(self, ...)
-        if getnamecallmethod() == "Kick" then
-            return
-        end
+        if getnamecallmethod() == "Kick" then return end
         return oldKick(self, ...)
     end)
 end)
@@ -33,33 +28,24 @@ task.spawn(function()
     end)
 end)
 
--- ==========================================
--- 🎨 WINDUI WINDOW CREATION
--- ==========================================
+-- 🎨 WINDUI WINDOW
 local Window = WindUI:CreateWindow({
     Title = "🟩 TDX Premium",
     Folder = "TDXHub",
-    Size = UDim2.fromOffset(600, 450),
+    Size = UDim2.fromOffset(620, 480),
     Transparent = true,
     Theme = "Dark",
     SideBarWidth = 180,
     HasOutline = false,
 })
 
--- Tab 1: Joins
 local JoinsTab = Window:Tab({ Title = "Joins", Icon = "globe" })
-
--- Tab 2: Recorder
 local MacroTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
-
--- Tab 3: Auto-Farm
 local FarmTab = Window:Tab({ Title = "Auto-Farm", Icon = "tractor" })
-
--- Tab 4: Security
-local SecurityTab = Window:Tab({ Title = "Security", Icon = "shield" })
+local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
 
 -- ==========================================
--- 🌐 JOINS TAB LOGIC
+-- 🌐 JOINS TAB (TDX Specific)
 -- ==========================================
 local function click_ui_button(btn_name)
     local btn = playerGui:FindFirstChild(btn_name, true)
@@ -82,9 +68,8 @@ local function click_ui_button(btn_name)
             VirtualInputManager:SendMouseButtonEvent(center_x, center_y, 0, false, game, 1)
             return true
         end
-    else
-        return false
     end
+    return false
 end
 
 local function DoJoin(difficulty)
@@ -95,39 +80,17 @@ local function DoJoin(difficulty)
     if not click_ui_button(difficulty) then return end
 end
 
-JoinsTab:Button({
-    Title = "▶ Play Solo (Easy)",
-    Desc = "Automatically join a Solo Easy match.",
-    Callback = function()
-        task.spawn(function() DoJoin("Easy") end)
-    end
-})
-
-JoinsTab:Button({
-    Title = "▶ Play Solo (Normal)",
-    Desc = "Automatically join a Solo Normal match.",
-    Callback = function()
-        task.spawn(function() DoJoin("Normal") end)
-    end
-})
-
-JoinsTab:Button({
-    Title = "▶ Play Solo (Hard)",
-    Desc = "Automatically join a Solo Hard match.",
-    Callback = function()
-        task.spawn(function() DoJoin("Hard") end)
-    end
-})
+JoinsTab:Button({ Title = "▶ Play Solo (Easy)", Desc = "Join a Solo Easy match.", Callback = function() task.spawn(function() DoJoin("Easy") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Intermediate)", Desc = "Join a Solo Intermediate match.", Callback = function() task.spawn(function() DoJoin("Intermediate") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Elite)", Desc = "Join a Solo Elite match.", Callback = function() task.spawn(function() DoJoin("Elite") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Expert)", Desc = "Join a Solo Expert match.", Callback = function() task.spawn(function() DoJoin("Expert") end) end })
 
 JoinsTab:Divider()
 
 JoinsTab:Input({
     Title = "Custom Mode",
-    Desc = "Type the name of the mode (e.g., Endless, Coop) and click Join.",
-    Placeholder = "e.g. Endless",
-    Callback = function(text)
-        _G.CustomMode = text
-    end
+    Placeholder = "e.g. Endless, Coop",
+    Callback = function(text) _G.CustomMode = text end
 })
 
 JoinsTab:Button({
@@ -140,7 +103,7 @@ JoinsTab:Button({
 })
 
 -- ==========================================
--- ⏺ RECORDER TAB LOGIC
+-- ⏺ RECORDER TAB
 -- ==========================================
 local state = { recording = false, playing = false, speed = 1.0, events = {} }
 local last_time = 0
@@ -176,8 +139,9 @@ game:GetService("UserInputService").InputChanged:Connect(function(input, gp)
     end
 end)
 
-MacroTab:Button({
-    Title = "⏺ Start / Stop Recording",
+MacroTab:Keybind({
+    Title = "Start / Stop Recording",
+    Key = "F7",
     Callback = function()
         state.recording = not state.recording
         if state.recording then
@@ -189,48 +153,32 @@ MacroTab:Button({
     end
 })
 
-MacroTab:Input({
-    Title = "Strategy Name",
-    Placeholder = "Enter Strategy Name...",
-    Callback = function(text)
-        _G.StrategyName = text
-    end
-})
+MacroTab:Input({ Title = "Strategy Name", Placeholder = "Enter Name...", Callback = function(text) _G.StrategyName = text end })
 
 MacroTab:Button({
     Title = "💾 Save Strategy",
     Callback = function()
         if not _G.StrategyName or _G.StrategyName == "" then
-            Window:Notify({ Title = "Error", Content = "Please enter a strategy name.", Duration = 3 })
+            Window:Notify({ Title = "Error", Content = "Please enter a name.", Duration = 3 })
             return
         end
         writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(state.events))
         Window:Notify({ Title = "Saved", Content = "Saved " .. _G.StrategyName .. ".json", Duration = 3 })
-        _G.RefreshStrategies()
     end
 })
 
 MacroTab:Divider()
 
-local SpeedSlider = MacroTab:Slider({
+MacroTab:Slider({
     Title = "Playback Speed",
     Value = { Min = 0.1, Max = 3.0, Default = 1.0 },
     Step = 0.1,
-    Callback = function(value)
-        state.speed = value
-    end
+    Callback = function(value) state.speed = value end
 })
 
-MacroTab:Dropdown({
-    Title = "Load Strategy",
-    Values = {},
-    Callback = function(option)
-        _G.StrategyName = option
-    end
-})
-
-MacroTab:Button({
-    Title = "▶ Play Macro",
+MacroTab:Keybind({
+    Title = "Play Macro",
+    Key = "F6",
     Callback = function()
         if state.playing then state.playing = false; return end
         if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then
@@ -258,22 +206,8 @@ MacroTab:Button({
     end
 })
 
--- Refresh Strategies logic
-_G.RefreshStrategies = function()
-    local files = listfiles() or {}
-    local list = {}
-    for _, file in ipairs(files) do
-        if string.find(file, "%.json$") then
-            table.insert(list, string.gsub(file, "%.json$", ""))
-        end
-    end
-    -- Update the dropdown (WindUI doesn't have a direct update method, so we recreate or just let it be)
-    -- For simplicity, we'll just let the dropdown populate once. 
-    -- You can re-open the UI to refresh.
-end
-
 -- ==========================================
--- 🚜 AUTO-FARM TAB LOGIC
+-- 🚜 AUTO-FARM TAB
 -- ==========================================
 local farm_active = false
 
@@ -284,42 +218,32 @@ FarmTab:Toggle({
     Callback = function(state)
         farm_active = state
         Window:Notify({ Title = "Auto-Farm", Content = state and "Enabled" or "Disabled", Duration = 3 })
-        if farm_active then
-            -- Add your auto-farm loop here
-        end
     end
 })
 
 FarmTab:Paragraph({
     Title = "Notice",
-    Desc = "Auto-Farm requires you to set up your map grid inside the script. This UI is the visual toggle for the logic.",
+    Desc = "Auto-Farm requires map-specific coordinates in the script. This UI is the visual toggle.",
 })
 
 -- ==========================================
--- 🛡️ SECURITY TAB LOGIC
+-- ⚙️ SETTINGS TAB
 -- ==========================================
-SecurityTab:Paragraph({
-    Title = "Protection Active",
-    Desc = "Anti-Kick and Anti-AFK are running in the background.",
+SettingsTab:Keybind({
+    Title = "Toggle UI Visibility",
+    Key = "F1",
+    Callback = function()
+        Window:SetVisible(false)
+    end
 })
 
-SecurityTab:Toggle({
-    Title = "Anti-Void",
-    Desc = "Rescues you if you fall off the map.",
-    Value = false,
-    Callback = function(state)
-        if state then
-            task.spawn(function()
-                while state do
-                    task.wait(1)
-                    if player.Character then
-                        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and hrp.Position.Y < -50 then
-                            hrp.CFrame = CFrame.new(0, 50, 0)
-                        end
-                    end
-                end
-            end)
-        end
+SettingsTab:Keybind({
+    Title = "PANIC (Stop All)",
+    Key = "F9",
+    Callback = function()
+        state.recording = false
+        state.playing = false
+        farm_active = false
+        Window:Notify({ Title = "PANIC", Content = "All macros stopped.", Duration = 3 })
     end
 })
