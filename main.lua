@@ -260,10 +260,22 @@ MacroTab:Slider({ Title = "Playback Speed", Value = { Min = 0.1, Max = 3.0, Defa
 MacroTab:Button({ Title = "▶ Play Macro (F6)", Callback = PlayMacro })
 
 -- ==========================================
+-- ⚙️ SETTINGS TAB
+-- ==========================================
+SettingsTab:Button({
+    Title = "👁️ Hide UI (F1)",
+    Callback = function()
+        pcall(function() Window:Toggle() end)
+    end
+})
+
+-- ==========================================
 -- ⌨️ NATIVE GLOBAL KEYBINDS
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+    -- Only ignore if the user is typing in a text box (so you can type in the Strategy Name box)
+    if UserInputService:GetFocusedTextBox() then return end
+    
     if input.KeyCode == Enum.KeyCode.F7 then
         state.recording = not state.recording
         if state.recording then 
@@ -278,6 +290,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         state.recording = false; state.playing = false
         Window:Notify({ Title = "PANIC", Content = "All macros stopped.", Duration = 3 })
     elseif input.KeyCode == Enum.KeyCode.F1 then
-        if Window.Visible then Window:SetVisible(false) else Window:SetVisible(true) end
+        -- Use WindUI's native toggle function
+        pcall(function() Window:Toggle() end)
     end
 end)
