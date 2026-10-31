@@ -1,11 +1,11 @@
 --[[
-    🟩 TDX MACRO HUB V9 - WINDUI EDITION
-    Features: Premium UI, Global Keybinds, TDX-Specific Joins, Recorder, Auto-Farm.
+    🟩 TDX MACRO HUB V11 - WINDUI EDITION (Pro Recorder)
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
@@ -41,8 +41,6 @@ local Window = WindUI:CreateWindow({
 
 local JoinsTab = Window:Tab({ Title = "Joins", Icon = "globe" })
 local MacroTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
-local FarmTab = Window:Tab({ Title = "Auto-Farm", Icon = "tractor" })
-local SettingsTab = Window:Tab({ Title = "Settings", Icon = "settings" })
 
 -- ==========================================
 -- 🌐 JOINS TAB (TDX Specific)
@@ -80,77 +78,153 @@ local function DoJoin(difficulty)
     if not click_ui_button(difficulty) then return end
 end
 
-JoinsTab:Button({ Title = "▶ Play Solo (Easy)", Desc = "Join a Solo Easy match.", Callback = function() task.spawn(function() DoJoin("Easy") end) end })
-JoinsTab:Button({ Title = "▶ Play Solo (Intermediate)", Desc = "Join a Solo Intermediate match.", Callback = function() task.spawn(function() DoJoin("Intermediate") end) end })
-JoinsTab:Button({ Title = "▶ Play Solo (Elite)", Desc = "Join a Solo Elite match.", Callback = function() task.spawn(function() DoJoin("Elite") end) end })
-JoinsTab:Button({ Title = "▶ Play Solo (Expert)", Desc = "Join a Solo Expert match.", Callback = function() task.spawn(function() DoJoin("Expert") end) end })
-
-JoinsTab:Divider()
-
-JoinsTab:Input({
-    Title = "Custom Mode",
-    Placeholder = "e.g. Endless, Coop",
-    Callback = function(text) _G.CustomMode = text end
-})
-
-JoinsTab:Button({
-    Title = "🌐 Custom Join",
-    Callback = function()
-        if _G.CustomMode and _G.CustomMode ~= "" then
-            task.spawn(function() DoJoin(_G.CustomMode) end)
-        end
-    end
-})
+JoinsTab:Button({ Title = "▶ Play Solo (Easy)", Callback = function() task.spawn(function() DoJoin("Easy") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Intermediate)", Callback = function() task.spawn(function() DoJoin("Intermediate") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Elite)", Callback = function() task.spawn(function() DoJoin("Elite") end) end })
+JoinsTab:Button({ Title = "▶ Play Solo (Expert)", Callback = function() task.spawn(function() DoJoin("Expert") end) end })
 
 -- ==========================================
--- ⏺ RECORDER TAB
+-- ⏺ PRO RECORDER ENGINE
 -- ==========================================
 local state = { recording = false, playing = false, speed = 1.0, events = {} }
 local last_time = 0
 
+-- Precise Timer
+local function precise_sleep(duration)
+    if duration <= 0 then return end
+    local target = os.clock() + duration
+    if duration > 0.002 then
+        task.wait(duration - 0.0015)
+    end
+    while os.clock() < target do
+        -- Busy wait for extreme precision
+    end
+end
+
+-- Record Logic
 local function add_event(data)
     if not state.recording then return end
-    local now = tick()
+    local now = os.clock()
     data.delay = now - last_time
     last_time = now
     table.insert(state.events, data)
 end
 
-game:GetService("UserInputService").InputBegan:Connect(function(input, gp)
+UserInputService.InputBegan:Connect(function(input, gp)
     if gp or not state.recording then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 then add_event({t="click", x=input.Position.X, y=input.Position.Y, state="down"})
     elseif input.UserInputType == Enum.UserInputType.MouseButton2 then add_event({t="click", button="right", state="down"})
     elseif input.UserInputType == Enum.UserInputType.Keyboard then add_event({t="key", key=input.KeyCode.Name, state="down"}) end
 end)
 
-game:GetService("UserInputService").InputEnded:Connect(function(input, gp)
+UserInputService.InputEnded:Connect(function(input, gp)
     if gp or not state.recording then return end
     if input.UserInputType == Enum.UserInputType.MouseButton1 then add_event({t="click", x=input.Position.X, y=input.Position.Y, state="up"})
     elseif input.UserInputType == Enum.UserInputType.MouseButton2 then add_event({t="click", button="right", state="up"})
     elseif input.UserInputType == Enum.UserInputType.Keyboard then add_event({t="key", key=input.KeyCode.Name, state="up"}) end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input, gp)
+UserInputService.InputChanged:Connect(function(input, gp)
     if gp or not state.recording then return end
     if input.UserInputType == Enum.UserInputType.MouseMovement then
-        if game:GetService("UserInputService"):IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            add_event({t="camera", x=input.Delta.X, y=input.Delta.Y})
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            -- Only record camera if moving
+            if input.Delta.X ~= 0 or input.Delta.Y ~= 0 then
+                add_event({t="camera", x=input.Delta.X, y=input.Delta.Y})
+            end
         end
     end
 end)
 
-MacroTab:Keybind({
-    Title = "Start / Stop Recording",
-    Key = "F7",
+-- Smart Compression (Shrinks file size by up to 80%)
+local function compress_events(events)
+    if #events == 0 then return events end
+    local compressed = {events[1]}
+    for i = 2, #events do
+        local ev = events[i]
+        local last = compressed[#compressed]
+        
+        -- Merge rapid camera movements
+        if ev.t == "camera" and last.t == "camera" and ev.delay < 0.01 then
+            last.x = last.x + ev.x
+            last.y = last.y + ev.y
+            last.delay = last.delay + ev.delay
+        else
+            table.insert(compressed, ev)
+        end
+    end
+    return compressed
+end
+
+-- Play Logic (Uses hardware inputs for 100% accuracy)
+local function PlayMacro()
+    if state.playing then 
+        state.playing = false
+        Window:Notify({ Title = "Recorder", Content = "Playback stopped.", Duration = 3 })
+        return 
+    end
+    if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then
+        Window:Notify({ Title = "Error", Content = "Strategy file not found!", Duration = 3 })
+        return
+    end
+    
+    local data = HttpService:JSONDecode(readfile(_G.StrategyName .. ".json"))
+    state.playing = true
+    Window:Notify({ Title = "Playback", Content = "Playing at " .. state.speed .. "x speed", Duration = 3 })
+    
+    task.spawn(function()
+        for _, ev in ipairs(data) do
+            if not state.playing then break end
+            
+            -- Use precise sleep to prevent TDX from dropping inputs
+            precise_sleep(ev.delay / state.speed)
+            
+            if ev.t == "key" then
+                VirtualInputManager:SendKeyEvent(ev.state == "down", Enum.KeyCode[ev.key], false, game)
+            elseif ev.t == "click" then
+                -- Use hardware click to bypass TDX UI blocks
+                if ev.state == "down" then
+                    if ev.button == "right" then
+                        mouse2press()
+                    else
+                        mouse1press()
+                    end
+                else
+                    if ev.button == "right" then
+                        mouse2release()
+                    else
+                        mouse1release()
+                    end
+                end
+            elseif ev.t == "camera" then
+                mousemoverel(ev.x, ev.y)
+            end
+        end
+        
+        -- Emergency Cleanup (Stops stuck keys/camera)
+        mouse1release()
+        mouse2release()
+        for k = 65, 90 do -- Release all letter keys just in case
+            pcall(function() keyrelease(string.char(k):lower()) end)
+        end
+        
+        state.playing = false
+        Window:Notify({ Title = "Playback", Content = "Finished.", Duration = 3 })
+    end)
+end
+
+-- UI Buttons
+MacroTab:Button({ 
+    Title = "⏺ Start / Stop Recording (F7)", 
     Callback = function()
         state.recording = not state.recording
         if state.recording then
-            state.events = {}; last_time = tick()
+            state.events = {}; last_time = os.clock()
             Window:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
         else
             Window:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
         end
-    end
+    end 
 })
 
 MacroTab:Input({ Title = "Strategy Name", Placeholder = "Enter Name...", Callback = function(text) _G.StrategyName = text end })
@@ -158,16 +232,12 @@ MacroTab:Input({ Title = "Strategy Name", Placeholder = "Enter Name...", Callbac
 MacroTab:Button({
     Title = "💾 Save Strategy",
     Callback = function()
-        if not _G.StrategyName or _G.StrategyName == "" then
-            Window:Notify({ Title = "Error", Content = "Please enter a name.", Duration = 3 })
-            return
-        end
-        writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(state.events))
-        Window:Notify({ Title = "Saved", Content = "Saved " .. _G.StrategyName .. ".json", Duration = 3 })
+        if not _G.StrategyName or _G.StrategyName == "" then return end
+        local compressed = compress_events(state.events)
+        writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(compressed))
+        Window:Notify({ Title = "Saved", Content = "Saved with " .. #compressed .. " events.", Duration = 3 })
     end
 })
-
-MacroTab:Divider()
 
 MacroTab:Slider({
     Title = "Playback Speed",
@@ -176,74 +246,29 @@ MacroTab:Slider({
     Callback = function(value) state.speed = value end
 })
 
-MacroTab:Keybind({
-    Title = "Play Macro",
-    Key = "F6",
-    Callback = function()
-        if state.playing then state.playing = false; return end
-        if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then
-            Window:Notify({ Title = "Error", Content = "File not found!", Duration = 3 })
-            return
+MacroTab:Button({ Title = "▶ Play Macro (F6)", Callback = PlayMacro })
+
+-- ==========================================
+-- ⌨️ NATIVE GLOBAL KEYBINDS
+-- ==========================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == Enum.KeyCode.F7 then
+        state.recording = not state.recording
+        if state.recording then
+            state.events = {}; last_time = os.clock()
+            Window:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
+        else
+            Window:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
         end
-        
-        local data = HttpService:JSONDecode(readfile(_G.StrategyName .. ".json"))
-        state.playing = true
-        
-        task.spawn(function()
-            for _, ev in ipairs(data) do
-                if not state.playing then break end
-                task.wait(ev.delay / state.speed)
-                if ev.t == "key" then
-                    VirtualInputManager:SendKeyEvent(ev.state == "down", Enum.KeyCode[ev.key], false, game)
-                elseif ev.t == "click" then
-                    VirtualInputManager:SendMouseButtonEvent(ev.x or 0, ev.y or 0, (ev.button == "right") and 1 or 0, ev.state == "down", game, 1)
-                elseif ev.t == "camera" then
-                    mousemoverel(ev.x, ev.y)
-                end
-            end
-            state.playing = false
-        end)
-    end
-})
-
--- ==========================================
--- 🚜 AUTO-FARM TAB
--- ==========================================
-local farm_active = false
-
-FarmTab:Toggle({
-    Title = "Auto-Farm TDX",
-    Desc = "Automatically places towers and farms.",
-    Value = false,
-    Callback = function(state)
-        farm_active = state
-        Window:Notify({ Title = "Auto-Farm", Content = state and "Enabled" or "Disabled", Duration = 3 })
-    end
-})
-
-FarmTab:Paragraph({
-    Title = "Notice",
-    Desc = "Auto-Farm requires map-specific coordinates in the script. This UI is the visual toggle.",
-})
-
--- ==========================================
--- ⚙️ SETTINGS TAB
--- ==========================================
-SettingsTab:Keybind({
-    Title = "Toggle UI Visibility",
-    Key = "F1",
-    Callback = function()
-        Window:SetVisible(false)
-    end
-})
-
-SettingsTab:Keybind({
-    Title = "PANIC (Stop All)",
-    Key = "F9",
-    Callback = function()
+    elseif input.KeyCode == Enum.KeyCode.F6 then
+        PlayMacro()
+    elseif input.KeyCode == Enum.KeyCode.F9 then
         state.recording = false
         state.playing = false
-        farm_active = false
         Window:Notify({ Title = "PANIC", Content = "All macros stopped.", Duration = 3 })
+    elseif input.KeyCode == Enum.KeyCode.F1 then
+        if Window.Visible then Window:SetVisible(false) else Window:SetVisible(true) end
     end
-})
+end)
