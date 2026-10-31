@@ -1,6 +1,6 @@
 --[[
-    🟩 TDX MACRO HUB V3 - PREMIUM EDITION
-    Features: Animations, Custom Slider, Anti-Kick, Auto-Farm, Live Radar.
+    🟩 TDX MACRO HUB V5 - NEON EDITION
+    Features: Joins, Auto-Farm, Recorder, Security, Animations.
 --]]
 
 local CoreGui = game:GetService("CoreGui")
@@ -13,29 +13,31 @@ local Players = game:GetService("Players")
 
 local Player = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
+local playerGui = Player:WaitForChild("PlayerGui")
 
+-- Theme
 local Theme = {
-    Background = Color3.fromRGB(12, 12, 14),
-    Sidebar = Color3.fromRGB(18, 18, 22),
-    Element = Color3.fromRGB(24, 24, 30),
-    Accent = Color3.fromRGB(34, 197, 94),
-    Danger = Color3.fromRGB(239, 68, 68),
-    Text = Color3.fromRGB(240, 240, 240),
-    SubText = Color3.fromRGB(150, 150, 160)
+    Background = Color3.fromRGB(10, 10, 15),
+    Sidebar = Color3.fromRGB(15, 15, 22),
+    Element = Color3.fromRGB(25, 25, 35),
+    Accent = Color3.fromRGB(0, 255, 136), -- Neon Green
+    Danger = Color3.fromRGB(255, 50, 100),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(140, 140, 160)
 }
 
 local function log(text)
-    print("[TDX Hub] " .. text)
+    print("[TDX V5] " .. text)
     if _G.TDX_Console then _G.TDX_Console(text) end
 end
 
 -- ==========================================
--- 🛡️ SECURITY & PROTECTION
+-- 🛡️ SECURITY (ANTI-KICK / ANTI-AFK)
 -- ==========================================
 pcall(function()
     local oldKick = hookmetamethod(game, "__namecall", function(self, ...)
         if getnamecallmethod() == "Kick" then
-            log("🚫 ANTI-KICK: Blocked Kick Attempt!")
+            log("🚫 Blocked Kick Attempt!")
             return
         end
         return oldKick(self, ...)
@@ -51,115 +53,102 @@ task.spawn(function()
 end)
 
 -- ==========================================
--- 🎨 UI CREATION
+-- 🎨 UI HELPER FUNCTIONS
 -- ==========================================
 local parentGui = game:GetService("CoreGui")
 pcall(function() parentGui = gethui() end)
-if parentGui:FindFirstChild("TDX_Hub") then parentGui.TDX_Hub:Destroy() end
+if parentGui:FindFirstChild("TDX_Hub_V5") then parentGui.TDX_Hub_V5:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TDX_Hub"
+ScreenGui.Name = "TDX_Hub_V5"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = parentGui
 
--- Main Window
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 600, 0, 400)
-Main.Position = UDim2.new(0.5, -300, 0.5, -200)
-Main.BackgroundColor3 = Theme.Background
-Main.BorderSizePixel = 0
-Main.Parent = ScreenGui
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-local MainStroke = Instance.new("UIStroke", Main)
-MainStroke.Color = Theme.Element
-MainStroke.Thickness = 1
-
--- Dragging Logic
-local dragging, dragInput, dragStart, startPos
-local function updateDrag(input)
-    local delta = input.Position - dragStart
-    Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+local function create(className, properties, children)
+    local inst = Instance.new(className)
+    for k, v in pairs(properties) do
+        if k ~= "Parent" then inst[k] = v end
+    end
+    if children then
+        for _, child in pairs(children) do child.Parent = inst end
+    end
+    if properties.Parent then inst.Parent = properties.Parent end
+    return inst
 end
+
+local function addCorner(inst, radius)
+    return create("UICorner", {CornerRadius = UDim.new(0, radius or 8), Parent = inst})
+end
+
+local function addStroke(inst, color, thickness)
+    return create("UIStroke", {Color = color or Theme.Element, Thickness = thickness or 1, Parent = inst})
+end
+
+-- ==========================================
+-- 🖥️ MAIN WINDOW
+-- ==========================================
+local Main = create("Frame", {
+    Size = UDim2.new(0, 650, 0, 420),
+    Position = UDim2.new(0.5, -325, 0.5, -210),
+    BackgroundColor3 = Theme.Background,
+    BorderSizePixel = 0,
+    Parent = ScreenGui
+})
+addCorner(Main, 12)
+addStroke(Main, Theme.Element, 1)
+
+-- Dragging
+local dragging, dragInput, dragStart, startPos
 Main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = Main.Position
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then dragging = false end
-        end)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = input.Position; startPos = Main.Position
     end
 end)
 Main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
 end)
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then updateDrag(input) end
+    if dragging and input == dragInput then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
 end)
 
--- Top Bar
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1, 0, 0, 40)
-TopBar.BackgroundColor3 = Theme.Sidebar
-TopBar.BorderSizePixel = 0
-TopBar.Parent = Main
-Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 10)
-local TopBarFix = Instance.new("Frame") -- Hides bottom rounded corners
-TopBarFix.Size = UDim2.new(1, 0, 0, 15)
-TopBarFix.Position = UDim2.new(0, 0, 1, -15)
-TopBarFix.BackgroundColor3 = Theme.Sidebar
-TopBarFix.BorderSizePixel = 0
-TopBarFix.Parent = TopBar
+-- Topbar
+local TopBar = create("Frame", {
+    Size = UDim2.new(1, 0, 0, 45), BackgroundColor3 = Theme.Background, BorderSizePixel = 0, Parent = Main
+})
+create("TextLabel", {
+    Size = UDim2.new(1, -100, 1, 0), Position = UDim2.new(0, 20, 0, 0),
+    BackgroundTransparency = 1, Text = "🟩 TDX PREMIUM",
+    TextColor3 = Theme.Accent, Font = Enum.Font.GothamBold, TextSize = 16,
+    TextXAlignment = Enum.TextXAlignment.Left, Parent = TopBar
+})
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -80, 1, 0)
-Title.Position = UDim2.new(0, 15, 0, 0)
-Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX MACRO V3"
-Title.TextColor3 = Theme.Accent
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.TextXAlignment = Enum.TextXAlignment.Left
-Title.Parent = TopBar
-
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0, 30, 0, 30)
-CloseBtn.Position = UDim2.new(1, -40, 0, 5)
-CloseBtn.BackgroundColor3 = Theme.Element
-CloseBtn.Text = "✖"
-CloseBtn.TextColor3 = Theme.Danger
-CloseBtn.Font = Enum.Font.GothamBold
-CloseBtn.Parent = TopBar
-Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(0, 6)
-CloseBtn.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
-local MinimizeBtn = Instance.new("TextButton")
-MinimizeBtn.Size = UDim2.new(0, 30, 0, 30)
-MinimizeBtn.Position = UDim2.new(1, -75, 0, 5)
-MinimizeBtn.BackgroundColor3 = Theme.Element
-MinimizeBtn.Text = "-"
-MinimizeBtn.TextColor3 = Theme.Text
-MinimizeBtn.Font = Enum.Font.GothamBold
-MinimizeBtn.Parent = TopBar
-Instance.new("UICorner", MinimizeBtn).CornerRadius = UDim.new(0, 6)
+local Close = create("TextButton", {
+    Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(1, -40, 0, 8),
+    BackgroundColor3 = Theme.Element, Text = "✖", TextColor3 = Theme.Danger,
+    Font = Enum.Font.GothamBold, Parent = TopBar
+})
+addCorner(Close, 6)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
 -- Sidebar
-local Sidebar = Instance.new("Frame")
-Sidebar.Size = UDim2.new(0, 130, 1, -40)
-Sidebar.Position = UDim2.new(0, 0, 0, 40)
-Sidebar.BackgroundColor3 = Theme.Sidebar
-Sidebar.BorderSizePixel = 0
-Sidebar.Parent = Main
+local Sidebar = create("Frame", {
+    Size = UDim2.new(0, 140, 1, -45), Position = UDim2.new(0, 0, 0, 45),
+    BackgroundColor3 = Theme.Sidebar, BorderSizePixel = 0, Parent = Main
+})
 
-local Content = Instance.new("Frame")
-Content.Size = UDim2.new(1, -130, 1, -40)
-Content.Position = UDim2.new(0, 130, 0, 40)
-Content.BackgroundTransparency = 1
-Content.Parent = Main
+-- Content Area
+local Content = create("Frame", {
+    Size = UDim2.new(1, -140, 1, -45), Position = UDim2.new(0, 140, 0, 45),
+    BackgroundTransparency = 1, Parent = Main
+})
 
--- Tabs System
+-- Tabs
 local tabs, pages = {}, {}
 local currentTab = nil
 
@@ -168,30 +157,27 @@ local function SwitchTab(name)
     currentTab = name
     for tName, tBtn in pairs(tabs) do
         local isActive = (tName == name)
-        TweenService:Create(tBtn, TweenInfo.new(0.2), {BackgroundColor3 = isActive and Theme.Element or Theme.Sidebar, TextColor3 = isActive and Theme.Text or Theme.SubText}):Play()
+        TweenService:Create(tBtn, TweenInfo.new(0.2), {
+            BackgroundColor3 = isActive and Theme.Element or Theme.Sidebar,
+            TextColor3 = isActive and Theme.Accent or Theme.SubText
+        }):Play()
         if pages[tName] then pages[tName].Visible = isActive end
     end
 end
 
 local function CreateTab(name, text)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -10, 0, 35)
-    btn.Position = UDim2.new(0, 5, 0, #tabs * 40 + 5)
-    btn.BackgroundColor3 = Theme.Sidebar
-    btn.Text = "  " .. text
-    btn.TextColor3 = Theme.SubText
-    btn.Font = Enum.Font.GothamMedium
-    btn.TextSize = 13
-    btn.TextXAlignment = Enum.TextXAlignment.Left
-    btn.Parent = Sidebar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
-    
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 1, -20)
-    frame.Position = UDim2.new(0, 10, 0, 10)
-    frame.BackgroundTransparency = 1
-    frame.Visible = false
-    frame.Parent = Content
+    local btn = create("TextButton", {
+        Size = UDim2.new(1, -20, 0, 40), Position = UDim2.new(0, 10, 0, #tabs * 45 + 10),
+        BackgroundColor3 = Theme.Sidebar, Text = "   " .. text, TextColor3 = Theme.SubText,
+        Font = Enum.Font.GothamMedium, TextSize = 14, TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = Sidebar
+    })
+    addCorner(btn, 8)
+
+    local frame = create("Frame", {
+        Size = UDim2.new(1, -30, 1, -30), Position = UDim2.new(0, 15, 0, 15),
+        BackgroundTransparency = 1, Visible = false, Parent = Content
+    })
     
     tabs[name] = btn
     pages[name] = frame
@@ -199,155 +185,193 @@ local function CreateTab(name, text)
     return frame
 end
 
--- Minimize logic
-local minimized = false
-MinimizeBtn.MouseButton1Click:Connect(function()
-    minimized = not minimized
-    local targetSize = minimized and UDim2.new(0, 600, 0, 40) or UDim2.new(0, 600, 0, 400)
-    TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quart), {Size = targetSize}):Play()
-end)
+local JoinsPage = CreateTab("joins", "🌐  Joins")
+local MacroPage = CreateTab("macro", "⏺  Recorder")
+local FarmPage = CreateTab("farm", "🚜  Auto-Farm")
 
-local MacroPage = CreateTab("macro", "⏺  Macro")
-local StratPage = CreateTab("strat", "📁  Strategies")
-local InfoPage = CreateTab("info", "🛡️  Security")
-
--- Console Logger (Bottom Right of Content)
-local ConsoleBox = Instance.new("ScrollingFrame")
-ConsoleBox.Size = UDim2.new(0, 200, 0, 100)
-ConsoleBox.Position = UDim2.new(1, -210, 1, -110)
-ConsoleBox.BackgroundColor3 = Theme.Sidebar
-ConsoleBox.BorderSizePixel = 0
-ConsoleBox.ScrollBarThickness = 2
-ConsoleBox.Parent = Content
-Instance.new("UICorner", ConsoleBox).CornerRadius = UDim.new(0, 6)
-local ConsoleLayout = Instance.new("UIListLayout", ConsoleBox)
+-- Console (Bottom Right)
+local Console = create("ScrollingFrame", {
+    Size = UDim2.new(0, 250, 0, 120), Position = UDim2.new(1, -265, 1, -135),
+    BackgroundColor3 = Theme.Background, BorderSizePixel = 0,
+    ScrollBarThickness = 2, Parent = Content
+})
+addCorner(Console, 8)
+addStroke(Console, Theme.Element, 1)
+local ConsoleLayout = create("UIListLayout", {Padding = UDim.new(0, 4), Parent = Console})
 
 _G.TDX_Console = function(text)
-    local msg = Instance.new("TextLabel")
-    msg.Size = UDim2.new(1, -10, 0, 15)
-    msg.BackgroundTransparency = 1
-    msg.Text = "> " .. text
-    msg.TextColor3 = Theme.Accent
-    msg.Font = Enum.Font.Code
-    msg.TextSize = 11
-    msg.TextXAlignment = Enum.TextXAlignment.Left
-    msg.Parent = ConsoleBox
+    local msg = create("TextLabel", {
+        Size = UDim2.new(1, -10, 0, 16), BackgroundTransparency = 1,
+        Text = " > " .. text, TextColor3 = Theme.Accent, Font = Enum.Font.Code,
+        TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left, Parent = Console
+    })
     task.wait()
-    ConsoleBox.CanvasSize = UDim2.new(0, 0, 0, ConsoleLayout.AbsoluteContentSize.Y)
-    ConsoleBox.CanvasPosition = Vector2.new(0, ConsoleLayout.AbsoluteContentSize.Y)
+    Console.CanvasSize = UDim2.new(0, 0, 0, ConsoleLayout.AbsoluteContentSize.Y)
+    Console.CanvasPosition = Vector2.new(0, ConsoleLayout.AbsoluteContentSize.Y)
 end
 
 -- ==========================================
--- 📡 ANIMATED RADAR (Bottom Right)
+-- 🌐 JOINS PAGE
 -- ==========================================
-local Radar = Instance.new("Frame")
-Radar.Size = UDim2.new(0, 100, 0, 100)
-Radar.Position = UDim2.new(1, -110, 0, 10)
-Radar.BackgroundColor3 = Theme.Sidebar
-Radar.Parent = Content
-Instance.new("UICorner", Radar).CornerRadius = UDim.new(1, 0)
-local RadarStroke = Instance.new("UIStroke", Radar)
-RadarStroke.Color = Theme.Accent
-RadarStroke.Thickness = 2
-
-local SweepContainer = Instance.new("Frame")
-SweepContainer.Size = UDim2.new(1, 0, 1, 0)
-SweepContainer.BackgroundTransparency = 1
-SweepContainer.ClipsDescendants = true
-SweepContainer.Parent = Radar
-Instance.new("UICorner", SweepContainer).CornerRadius = UDim.new(1, 0)
-
-local Sweep = Instance.new("Frame")
-Sweep.Size = UDim2.new(0.5, 0, 0, 1)
-Sweep.Position = UDim2.new(0.5, 0, 0.5, 0)
-Sweep.BackgroundColor3 = Theme.Accent
-Sweep.AnchorPoint = Vector2.new(0, 0.5)
-Sweep.Parent = SweepContainer
-
-RunService.RenderStepped:Connect(function()
-    if Sweep and Sweep.Parent then
-        Sweep.Rotation = (Sweep.Rotation + 3) % 360
+-- Helper function to click UI buttons using physical mouse
+local function click_ui_button(btn_name)
+    local btn = playerGui:FindFirstChild(btn_name, true)
+    if btn then
+        local pos = btn.AbsolutePosition
+        local size = btn.AbsoluteSize
+        local center_x = pos.X + (size.X / 2)
+        local center_y = pos.Y + (size.Y / 2)
+        
+        if mousemoveabs and mouse1click then
+            mousemoveabs(center_x, center_y)
+            task.wait(0.2)
+            mouse1click()
+            return true
+        else
+            -- Fallback if executor lacks mouse functions
+            VirtualInputManager:SendMouseMoveEvent(center_x, center_y, Camera)
+            task.wait(0.1)
+            VirtualInputManager:SendMouseButtonEvent(center_x, center_y, 0, true, game, 1)
+            task.wait(0.1)
+            VirtualInputManager:SendMouseButtonEvent(center_x, center_y, 0, false, game, 1)
+            return true
+        end
+    else
+        log("❌ Could not find button: " .. btn_name)
+        return false
     end
+end
+
+local function DoJoin(difficulty)
+    log("🌐 Joining Solo...")
+    if not click_ui_button("PlaySolo") then return end
+    task.wait(1.5)
+    
+    log("🌐 Selecting Survival...")
+    if not click_ui_button("Survival") then return end
+    task.wait(1.5)
+    
+    log("🌐 Selecting " .. difficulty .. "...")
+    if not click_ui_button(difficulty) then return end
+    
+    log("✅ Join sequence complete. Loading map...")
+end
+
+local SoloEasyBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 45), Position = UDim2.new(0, 0, 0, 0),
+    BackgroundColor3 = Theme.Accent, Text = "▶ Play Solo (Easy)",
+    TextColor3 = Color3.new(0,0,0), Font = Enum.Font.GothamBold, Parent = JoinsPage
+})
+addCorner(SoloEasyBtn, 8)
+SoloEasyBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() DoJoin("Easy") end)
 end)
 
+local SoloNormalBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 45), Position = UDim2.new(0, 0, 0, 55),
+    BackgroundColor3 = Theme.Element, Text = "▶ Play Solo (Normal)",
+    TextColor3 = Theme.Text, Font = Enum.Font.GothamBold, Parent = JoinsPage
+})
+addCorner(SoloNormalBtn, 8)
+SoloNormalBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() DoJoin("Normal") end)
+end)
+
+local SoloHardBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 45), Position = UDim2.new(0, 0, 0, 110),
+    BackgroundColor3 = Theme.Danger, Text = "▶ Play Solo (Hard)",
+    TextColor3 = Theme.Text, Font = Enum.Font.GothamBold, Parent = JoinsPage
+})
+addCorner(SoloHardBtn, 8)
+SoloHardBtn.MouseButton1Click:Connect(function()
+    task.spawn(function() DoJoin("Hard") end)
+end)
+
+-- Custom Mode Joiner
+create("TextLabel", {
+    Size = UDim2.new(0, 200, 0, 20), Position = UDim2.new(0, 0, 0, 170),
+    BackgroundTransparency = 1, Text = "Custom Mode Name:",
+    TextColor3 = Theme.SubText, Font = Enum.Font.Gotham, TextSize = 12, Parent = JoinsPage
+})
+
+local CustomInput = create("TextBox", {
+    Size = UDim2.new(0, 200, 0, 35), Position = UDim2.new(0, 0, 0, 195),
+    BackgroundColor3 = Theme.Element, TextColor3 = Theme.Text,
+    PlaceholderText = "e.g. Endless, Coop, Group...", Font = Enum.Font.Gotham, Parent = JoinsPage
+})
+addCorner(CustomInput, 8)
+
+local CustomJoinBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 35), Position = UDim2.new(0, 0, 0, 240),
+    BackgroundColor3 = Theme.Element, Text = "🌐 Custom Join",
+    TextColor3 = Theme.Text, Font = Enum.Font.GothamBold, Parent = JoinsPage
+})
+addCorner(CustomJoinBtn, 8)
+CustomJoinBtn.MouseButton1Click:Connect(function()
+    local mode = CustomInput.Text
+    if mode == "" then return end
+    task.spawn(function() DoJoin(mode) end)
+end)
+
+
 -- ==========================================
--- ⏺ MACRO TAB
+-- ⏺ RECORDER PAGE
 -- ==========================================
 local state = { recording = false, playing = false, speed = 1.0, events = {} }
 local last_time = 0
 
-local RecBtn = Instance.new("TextButton")
-RecBtn.Size = UDim2.new(0, 180, 0, 40)
-RecBtn.Position = UDim2.new(0, 0, 0, 0)
-RecBtn.BackgroundColor3 = Theme.Danger
-RecBtn.Text = "⏺ Start Recording"
-RecBtn.TextColor3 = Theme.Text
-RecBtn.Font = Enum.Font.GothamBold
-RecBtn.Parent = MacroPage
-Instance.new("UICorner", RecBtn).CornerRadius = UDim.new(0, 6)
+local RecBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 45), Position = UDim2.new(0, 0, 0, 0),
+    BackgroundColor3 = Theme.Danger, Text = "⏺ Start Recording",
+    TextColor3 = Theme.Text, Font = Enum.Font.GothamBold, Parent = MacroPage
+})
+addCorner(RecBtn, 8)
 
-local NameInput = Instance.new("TextBox")
-NameInput.Size = UDim2.new(0, 180, 0, 35)
-NameInput.Position = UDim2.new(0, 0, 0, 50)
-NameInput.BackgroundColor3 = Theme.Element
-NameInput.TextColor3 = Theme.Text
-NameInput.PlaceholderText = "Strategy Name..."
-NameInput.Font = Enum.Font.Gotham
-NameInput.Parent = MacroPage
-Instance.new("UICorner", NameInput).CornerRadius = UDim.new(0, 6)
+local NameInput = create("TextBox", {
+    Size = UDim2.new(0, 200, 0, 35), Position = UDim2.new(0, 0, 0, 60),
+    BackgroundColor3 = Theme.Element, TextColor3 = Theme.Text,
+    PlaceholderText = "Enter Strategy Name...", Font = Enum.Font.Gotham, Parent = MacroPage
+})
+addCorner(NameInput, 8)
 
-local SaveBtn = Instance.new("TextButton")
-SaveBtn.Size = UDim2.new(0, 180, 0, 35)
-SaveBtn.Position = UDim2.new(0, 0, 0, 95)
-SaveBtn.BackgroundColor3 = Theme.Accent
-SaveBtn.Text = "💾 Save Strategy"
-SaveBtn.TextColor3 = Color3.new(0,0,0)
-SaveBtn.Font = Enum.Font.GothamBold
-SaveBtn.Parent = MacroPage
-Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
+local SaveBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 35), Position = UDim2.new(0, 0, 0, 105),
+    BackgroundColor3 = Theme.Accent, Text = "💾 Save Strategy",
+    TextColor3 = Color3.new(0,0,0), Font = Enum.Font.GothamBold, Parent = MacroPage
+})
+addCorner(SaveBtn, 8)
 
-local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(0, 180, 0, 40)
-PlayBtn.Position = UDim2.new(0, 0, 0, 150)
-PlayBtn.BackgroundColor3 = Theme.Accent
-PlayBtn.Text = "▶ Play Macro"
-PlayBtn.TextColor3 = Color3.new(0,0,0)
-PlayBtn.Font = Enum.Font.GothamBold
-PlayBtn.Parent = MacroPage
-Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 6)
+local PlayBtn = create("TextButton", {
+    Size = UDim2.new(0, 200, 0, 45), Position = UDim2.new(0, 0, 0, 160),
+    BackgroundColor3 = Theme.Accent, Text = "▶ Play Macro",
+    TextColor3 = Color3.new(0,0,0), Font = Enum.Font.GothamBold, Parent = MacroPage
+})
+addCorner(PlayBtn, 8)
 
--- Custom Slider
-local SliderBg = Instance.new("Frame")
-SliderBg.Size = UDim2.new(0, 180, 0, 6)
-SliderBg.Position = UDim2.new(0, 0, 0, 210)
-SliderBg.BackgroundColor3 = Theme.Element
-SliderBg.Parent = MacroPage
-Instance.new("UICorner", SliderBg).CornerRadius = UDim.new(1, 0)
+-- Speed Slider
+local SliderBg = create("Frame", {
+    Size = UDim2.new(0, 200, 0, 6), Position = UDim2.new(0, 0, 0, 230),
+    BackgroundColor3 = Theme.Element, Parent = MacroPage
+})
+addCorner(SliderBg, 4)
 
-local SliderFill = Instance.new("Frame")
-SliderFill.Size = UDim2.new(0.25, 0, 1, 0)
-SliderFill.BackgroundColor3 = Theme.Accent
-SliderFill.Parent = SliderBg
-Instance.new("UICorner", SliderFill).CornerRadius = UDim.new(1, 0)
+local SliderFill = create("Frame", {
+    Size = UDim2.new(0.3, 0, 1, 0), BackgroundColor3 = Theme.Accent, Parent = SliderBg
+})
+addCorner(SliderFill, 4)
 
-local SliderDot = Instance.new("Frame")
-SliderDot.Size = UDim2.new(0, 12, 0, 12)
-SliderDot.Position = UDim2.new(1, -6, 0.5, -6)
-SliderDot.BackgroundColor3 = Theme.Text
-SliderDot.Parent = SliderFill
-Instance.new("UICorner", SliderDot).CornerRadius = UDim.new(1, 0)
+local SliderDot = create("Frame", {
+    Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -7, 0.5, -7),
+    BackgroundColor3 = Theme.Text, Parent = SliderFill
+})
+addCorner(SliderDot, 7)
 
-local SpeedLabel = Instance.new("TextLabel")
-SpeedLabel.Size = UDim2.new(0, 180, 0, 20)
-SpeedLabel.Position = UDim2.new(0, 0, 0, 225)
-SpeedLabel.BackgroundTransparency = 1
-SpeedLabel.Text = "Playback Speed: 1.0x"
-SpeedLabel.TextColor3 = Theme.SubText
-SpeedLabel.Font = Enum.Font.Gotham
-SpeedLabel.TextSize = 12
-SpeedLabel.Parent = MacroPage
+local SpeedLabel = create("TextLabel", {
+    Size = UDim2.new(0, 200, 0, 20), Position = UDim2.new(0, 0, 0, 245),
+    BackgroundTransparency = 1, Text = "Playback Speed: 1.0x",
+    TextColor3 = Theme.SubText, Font = Enum.Font.Gotham, TextSize = 12, Parent = MacroPage
+})
 
--- Slider Logic
 local sliding = false
 SliderBg.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding = true end end)
 UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end end)
@@ -397,24 +421,21 @@ RecBtn.MouseButton1Click:Connect(function()
     if state.recording then
         state.events = {}; last_time = tick()
         RecBtn.Text = "⏹ Stop Recording"
-        RecBtn.BackgroundColor3 = Theme.Element
-        RecBtn.TextColor3 = Theme.Danger
-        log("🔴 Recording...")
+        RecBtn.BackgroundColor3 = Theme.Element; RecBtn.TextColor3 = Theme.Danger
+        log("🔴 Recording started...")
     else
         RecBtn.Text = "⏺ Start Recording"
-        RecBtn.BackgroundColor3 = Theme.Danger
-        RecBtn.TextColor3 = Theme.Text
-        log("⏹ Recording Stopped.")
+        RecBtn.BackgroundColor3 = Theme.Danger; RecBtn.TextColor3 = Theme.Text
+        log("⏹ Recording stopped.")
     end
 end)
 
 SaveBtn.MouseButton1Click:Connect(function()
     local fname = NameInput.Text
     if fname == "" then log("❌ Enter a name!") return end
-    if #state.events == 0 then log("❌ No events recorded!") return end
     writefile(fname .. ".json", HttpService:JSONEncode(state.events))
     log("💾 Saved " .. fname .. ".json")
-    _G.RefreshStrategies()
+    if _G.RefreshList then _G.RefreshList() end
 end)
 
 PlayBtn.MouseButton1Click:Connect(function()
@@ -426,7 +447,7 @@ PlayBtn.MouseButton1Click:Connect(function()
     state.playing = true
     PlayBtn.Text = "⏹ Stop Playback"
     PlayBtn.BackgroundColor3 = Theme.Danger
-    log("▶ Playing " .. fname .. " at " .. string.format("%.1fx", state.speed))
+    log("▶ Playing " .. fname)
     
     task.spawn(function()
         for _, ev in ipairs(data) do
@@ -448,52 +469,88 @@ PlayBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- 📁 STRATEGIES TAB
+-- 🚜 AUTO-FARM PAGE
 -- ==========================================
-local RefreshBtn = Instance.new("TextButton")
-RefreshBtn.Size = UDim2.new(0, 100, 0, 30)
-RefreshBtn.BackgroundColor3 = Theme.Element
-RefreshBtn.Text = "🔄 Refresh"
-RefreshBtn.TextColor3 = Theme.Text
-RefreshBtn.Font = Enum.Font.GothamBold
-RefreshBtn.Parent = StratPage
-Instance.new("UICorner", RefreshBtn).CornerRadius = UDim.new(0, 6)
+local farm_active = false
 
-local FileList = Instance.new("ScrollingFrame")
-FileList.Size = UDim2.new(1, -220, 1, 0)
-FileList.BackgroundColor3 = Theme.Sidebar
-FileList.BorderSizePixel = 0
-FileList.Parent = StratPage
-Instance.new("UICorner", FileList).CornerRadius = UDim.new(0, 6)
-local FileLayout = Instance.new("UIListLayout", FileList)
-FileLayout.Padding = UDim.new(0, 5)
+local ToggleBg = create("Frame", {
+    Size = UDim2.new(0, 50, 0, 26), Position = UDim2.new(0, 0, 0, 10),
+    BackgroundColor3 = Theme.Element, Parent = FarmPage
+})
+addCorner(ToggleBg, 13)
 
-_G.RefreshStrategies = function()
+local ToggleDot = create("Frame", {
+    Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(0, 3, 0.5, -10),
+    BackgroundColor3 = Theme.Text, Parent = ToggleBg
+})
+addCorner(ToggleDot, 10)
+
+local ToggleBtn = create("TextButton", {
+    Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = ToggleBg
+})
+
+local FarmLabel = create("TextLabel", {
+    Size = UDim2.new(1, -60, 0, 30), Position = UDim2.new(0, 60, 0, 8),
+    BackgroundTransparency = 1, Text = "Auto-Farm TDX (Easy)",
+    TextColor3 = Theme.Text, Font = Enum.Font.GothamBold, TextSize = 14,
+    TextXAlignment = Enum.TextXAlignment.Left, Parent = FarmPage
+})
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    farm_active = not farm_active
+    if farm_active then
+        TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Accent}):Play()
+        TweenService:Create(ToggleDot, TweenInfo.new(0.2), {Position = UDim2.new(1, -23, 0.5, -10)}):Play()
+        log("🚜 Auto-Farm Enabled. (Requires map grid setup!)")
+    else
+        TweenService:Create(ToggleBg, TweenInfo.new(0.2), {BackgroundColor3 = Theme.Element}):Play()
+        TweenService:Create(ToggleDot, TweenInfo.new(0.2), {Position = UDim2.new(0, 3, 0.5, -10)}):Play()
+        log("🛑 Auto-Farm Disabled.")
+    end
+end)
+
+local FarmDesc = create("TextLabel", {
+    Size = UDim2.new(1, -20, 0, 100), Position = UDim2.new(0, 0, 0, 60),
+    BackgroundTransparency = 1, Text = "Note: Auto-Farm requires you to set up your map grid inside the script. This UI is the visual toggle for the logic.",
+    TextColor3 = Theme.SubText, Font = Enum.Font.Gotham, TextSize = 12,
+    TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Parent = FarmPage
+})
+
+-- ==========================================
+-- 📁 STRATEGIES (Integrated into Recorder Page)
+-- ==========================================
+local FileList = create("ScrollingFrame", {
+    Size = UDim2.new(0, 200, 0, 120), Position = UDim2.new(0, 220, 0, 0),
+    BackgroundColor3 = Theme.Sidebar, BorderSizePixel = 0,
+    ScrollBarThickness = 2, Parent = MacroPage
+})
+addCorner(FileList, 8)
+addStroke(FileList, Theme.Element, 1)
+local FileLayout = create("UIListLayout", {Padding = UDim.new(0, 4), Parent = FileList})
+
+_G.RefreshList = function()
     for _, v in pairs(FileList:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
     local files = listfiles() or {}
     for _, file in ipairs(files) do
         if string.find(file, "%.json$") then
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, -10, 0, 30)
-            btn.BackgroundColor3 = Theme.Element
-            btn.Text = "📄 " .. string.gsub(file, "%.json$", "")
-            btn.TextColor3 = Theme.Text
-            btn.TextXAlignment = Enum.TextXAlignment.Left
-            btn.Parent = FileList
-            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
+            local btn = create("TextButton", {
+                Size = UDim2.new(1, -8, 0, 24), BackgroundColor3 = Theme.Element,
+                Text = "📄 " .. string.gsub(file, "%.json$", ""), TextColor3 = Theme.Text,
+                TextXAlignment = Enum.TextXAlignment.Left, TextSize = 11, Parent = FileList
+            })
+            addCorner(btn, 4)
             btn.MouseButton1Click:Connect(function()
                 NameInput.Text = string.gsub(file, "%.json$", "")
-                SwitchTab("macro")
-                log("📂 Loaded " .. file)
+                log("📂 Selected " .. file)
             end)
         end
     end
     FileList.CanvasSize = UDim2.new(0, 0, 0, FileLayout.AbsoluteContentSize.Y)
 end
 
-RefreshBtn.MouseButton1Click:Connect(_G.RefreshStrategies)
-SwitchTab("macro")
-_G.RefreshStrategies()
-log("✅ V3 UI Loaded successfully!")
+-- Start
+SwitchTab("joins")
+_G.RefreshList()
+log("✅ V5 UI Loaded.")
