@@ -1,5 +1,5 @@
 --[[
-    🟩 TDX MACRO HUB V45 - NUMBER KEY FIX
+    🟩 TDX MACRO HUB V46 - SAVE & LOAD AUTO-FARM
 --]]
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -10,12 +10,14 @@ local CoreGui = game:GetService("CoreGui")
 if CoreGui:FindFirstChild("TDX_NativeUI") then CoreGui.TDX_NativeUI:Destroy() end
 
 -- ==========================================
--- 🔑 SETTINGS
+-- 🔑 SETTINGS & VARIABLES
 -- ==========================================
 local RecordKey = "Z"
 local PlayKey = "X"
 local TriggerAbilityKey = "C" 
 local ActualAbilityKey = "G" 
+
+local CONFIG_FILE = "TDX_SavedMacro.json"
 
 local isRecording = false
 local isPlaying = false
@@ -25,22 +27,13 @@ local lastTowerKey = "1"
 local lastPlacedIndex = 0
 local isAbilityArmed = false
 
--- FIX: Map string numbers to correct Roblox Enums
+-- Map string numbers to correct Roblox Enums
 local KeyMap = {
-    ["1"] = Enum.KeyCode.One,
-    ["2"] = Enum.KeyCode.Two,
-    ["3"] = Enum.KeyCode.Three,
-    ["4"] = Enum.KeyCode.Four,
-    ["5"] = Enum.KeyCode.Five,
-    ["6"] = Enum.KeyCode.Six,
-    ["7"] = Enum.KeyCode.Seven,
-    ["8"] = Enum.KeyCode.Eight,
-    ["9"] = Enum.KeyCode.Nine,
-    ["0"] = Enum.KeyCode.Zero,
+    ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
+    ["4"] = Enum.KeyCode.Four, ["5"] = Enum.KeyCode.Five, ["6"] = Enum.KeyCode.Six,
 }
 
 local function vimPressKey(keyName)
-    -- Check if it's a number key first, otherwise use the normal Enum
     local key = KeyMap[keyName] or Enum.KeyCode[keyName]
     if key then
         VirtualInputManager:SendKeyEvent(true, key, false, game)
@@ -66,7 +59,6 @@ ScreenGui.Name = "TDX_NativeUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- Floating Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 100, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 20, 0.5, -15)
@@ -79,30 +71,25 @@ ToggleBtn.Parent = ScreenGui
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 280)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+MainFrame.Size = UDim2.new(0, 350, 0, 320)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -160)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Draggable = true
-MainFrame.Visible = true
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local stroke = Instance.new("UIStroke", MainFrame)
 stroke.Color = Color3.fromRGB(34, 197, 94)
 stroke.Thickness = 1
 
--- Toggle Logic
-local function toggleUI()
-    MainFrame.Visible = not MainFrame.Visible
-end
-
+local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
 ToggleBtn.MouseButton1Click:Connect(toggleUI)
 
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX MACRO V45"
+Title.Text = "🟩 TDX MACRO V46"
 Title.TextColor3 = Color3.fromRGB(34, 197, 94)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -112,7 +99,7 @@ local Status = Instance.new("TextLabel")
 Status.Size = UDim2.new(1, 0, 0, 20)
 Status.Position = UDim2.new(0, 0, 0, 30)
 Status.BackgroundTransparency = 1
-Status.Text = "Status: Idle (0 actions)"
+Status.Text = "Status: Idle"
 Status.TextColor3 = Color3.fromRGB(200, 200, 200)
 Status.Font = Enum.Font.Gotham
 Status.TextSize = 12
@@ -138,15 +125,26 @@ PlayBtn.Font = Enum.Font.GothamBold
 PlayBtn.Parent = MainFrame
 Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 6)
 
+-- Save / Load Buttons
 local SaveBtn = Instance.new("TextButton")
-SaveBtn.Size = UDim2.new(1, -20, 0, 35)
+SaveBtn.Size = UDim2.new(0.48, 0, 0, 35)
 SaveBtn.Position = UDim2.new(0, 10, 0, 150)
 SaveBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-SaveBtn.Text = "💾 PRINT JSON TO F9"
+SaveBtn.Text = "💾 Save"
 SaveBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 SaveBtn.Font = Enum.Font.GothamBold
 SaveBtn.Parent = MainFrame
 Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
+
+local LoadBtn = Instance.new("TextButton")
+LoadBtn.Size = UDim2.new(0.48, 0, 0, 35)
+LoadBtn.Position = UDim2.new(0.52, 0, 0, 150)
+LoadBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
+LoadBtn.Text = "📂 Load"
+LoadBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
+LoadBtn.Font = Enum.Font.GothamBold
+LoadBtn.Parent = MainFrame
+Instance.new("UICorner", LoadBtn).CornerRadius = UDim.new(0, 6)
 
 local LoopBtn = Instance.new("TextButton")
 LoopBtn.Size = UDim2.new(1, -20, 0, 30)
@@ -158,6 +156,17 @@ LoopBtn.Font = Enum.Font.GothamBold
 LoopBtn.Parent = MainFrame
 Instance.new("UICorner", LoopBtn).CornerRadius = UDim.new(0, 6)
 
+local Info = Instance.new("TextLabel")
+Info.Size = UDim2.new(1, -20, 0, 60)
+Info.Position = UDim2.new(0, 10, 0, 235)
+Info.BackgroundTransparency = 1
+Info.Text = "Record -> Save. Next time you execute the script, it will auto-load your saved layout."
+Info.TextColor3 = Color3.fromRGB(150, 150, 150)
+Info.Font = Enum.Font.Gotham
+Info.TextSize = 11
+Info.TextWrapped = true
+Info.Parent = MainFrame
+
 -- ==========================================
 -- CORE LOGIC
 -- ==========================================
@@ -166,7 +175,7 @@ local function updateStatus()
         Status.Text = "Status: 🔴 RECORDING (" .. #actions .. " actions)"
         Status.TextColor3 = Color3.fromRGB(200, 50, 50)
     else
-        Status.Text = "Status: Idle (" .. #actions .. " actions)"
+        Status.Text = "Status: Idle (" .. #actions .. " actions loaded)"
         Status.TextColor3 = Color3.fromRGB(200, 200, 200)
     end
 end
@@ -222,15 +231,44 @@ local function togglePlay()
     end
 end
 
+-- ==========================================
+-- SAVE & LOAD LOGIC
+-- ==========================================
+local function saveMacro()
+    if #actions == 0 then return end
+    local success, err = pcall(function()
+        writefile(CONFIG_FILE, HttpService:JSONEncode(actions))
+    end)
+    if success then
+        print("✅ Macro saved to " .. CONFIG_FILE)
+        Status.Text = "Status: Saved to file!"
+    else
+        print("❌ Failed to save: " .. tostring(err))
+    end
+end
+
+local function loadMacro()
+    if isfile(CONFIG_FILE) then
+        local success, data = pcall(function()
+            return HttpService:JSONDecode(readfile(CONFIG_FILE))
+        end)
+        if success and data then
+            actions = data
+            print("✅ Macro loaded from file (" .. #actions .. " actions)")
+            updateStatus()
+        end
+    else
+        print("⚠️ No saved macro found.")
+    end
+end
+
+-- ==========================================
+-- UI CONNECTIONS
+-- ==========================================
 RecBtn.MouseButton1Click:Connect(toggleRecord)
 PlayBtn.MouseButton1Click:Connect(togglePlay)
-
-SaveBtn.MouseButton1Click:Connect(function()
-    print("========================================")
-    print("COPY THIS JSON:")
-    print(HttpService:JSONEncode(actions))
-    print("========================================")
-end)
+SaveBtn.MouseButton1Click:Connect(saveMacro)
+LoadBtn.MouseButton1Click:Connect(loadMacro)
 
 LoopBtn.MouseButton1Click:Connect(function()
     loopPlayback = not loopPlayback
@@ -246,7 +284,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType == Enum.UserInputType.Keyboard then
         local keyName = input.KeyCode.Name
         
-        -- FIX: Check if the keyName is a number word (One, Two) and convert to string number
         local stringNum = string.match(keyName, "One") and "1" or string.match(keyName, "Two") and "2" or string.match(keyName, "Three") and "3" or string.match(keyName, "Four") and "4"
         
         if stringNum then
@@ -290,16 +327,15 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ==========================================
--- GLOBAL KEYBINDS
+-- GLOBAL KEYBINDS & AUTO-LOAD
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gp)
     if UserInputService:GetFocusedTextBox() then return end
-    
-    if input.KeyCode.Name == RecordKey then 
-        toggleRecord() 
-    elseif input.KeyCode.Name == PlayKey then 
-        togglePlay() 
-    elseif input.KeyCode == Enum.KeyCode.RightControl then
-        toggleUI()
-    end
+    if input.KeyCode.Name == RecordKey then toggleRecord() 
+    elseif input.KeyCode.Name == PlayKey then togglePlay() 
+    elseif input.KeyCode == Enum.KeyCode.RightControl then toggleUI() end
 end)
+
+-- Auto-load the file on startup
+task.wait(1)
+loadMacro()
