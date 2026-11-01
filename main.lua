@@ -1,18 +1,23 @@
 --[[
-    🟩 TDX MACRO HUB V29 - AUTONOMOUS SCANNER
-    Auto-detects valid tower spots by reading your cash.
+    🟩 TDX MACRO HUB V30 - AUTONOMOUS SCANNER (Fixed)
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
 local Window = WindUI:CreateWindow({
     Title = "🟩 TDX Scanner", 
     Folder = "TDXAuto", 
     Size = UDim2.fromOffset(650, 500),
-    Transparent = true, Theme = "Dark", SideBarWidth = 170, HasOutline = false, ToggleKey = "RightShift",
+    Transparent = true, 
+    Theme = "Dark", 
+    SideBarWidth = 170, 
+    HasOutline = false, 
+    ToggleKey = "RightShift",
 })
 
 local function Notify(title, text)
@@ -28,7 +33,6 @@ local foundSpots = {}
 
 local StatusLabel = ScanTab:Paragraph({ Title = "Status", Desc = "⚪ Ready to scan." })
 
--- Function to get current cash safely
 local function getCash()
     local stats = player:FindFirstChild("leaderstats")
     if stats and stats:FindFirstChild("Cash") then
@@ -46,10 +50,9 @@ ScanTab:Button({
         StatusLabel:SetDesc("🟡 Scanning... Do not move your mouse!")
         
         task.spawn(function()
-            -- Wait for player to be fully loaded
             task.wait(2)
             
-            -- Grid Settings (Adjust these based on your resolution)
+            -- Grid Settings
             local startX, endX, stepX = 400, 1000, 60
             local startY, endY, stepY = 300, 650, 60
             
@@ -57,7 +60,6 @@ ScanTab:Button({
                 for x = startX, endX, stepX do
                     if not isScanning then break end
                     
-                    -- Select Farm
                     keypress("1")
                     task.wait(0.1)
                     keyrelease("1")
@@ -65,22 +67,19 @@ ScanTab:Button({
                     
                     local oldCash = getCash()
                     
-                    -- Move mouse and click
                     mousemoveabs(x, y)
                     task.wait(0.1)
                     mouse1press()
                     task.wait(0.1)
                     mouse1release()
-                    task.wait(0.2) -- Wait for server to register
+                    task.wait(0.2) 
                     
                     local newCash = getCash()
                     
                     if newCash < oldCash then
-                        -- CASH DROPPED! It's a valid spot.
                         table.insert(foundSpots, {x = x, y = y})
                         StatusLabel:SetDesc("🟢 Found " .. #foundSpots .. " spots!")
                         
-                        -- Upgrade it twice to secure it
                         keypress("e")
                         task.wait(0.1)
                         keyrelease("e")
@@ -98,7 +97,6 @@ ScanTab:Button({
             StatusLabel:SetDesc("✅ Scan complete! Found " .. #foundSpots .. " spots.")
             Notify("Scanner", "Scan finished. Check the JSON box.")
             
-            -- Generate JSON
             local jsonOutput = "{\n  \"MyMap\": [\n"
             for i, spot in ipairs(foundSpots) do
                 jsonOutput = jsonOutput .. string.format('    {"key": "1", "x": %d, "y": %d, "upgrade": 2}', spot.x, spot.y)
@@ -106,7 +104,7 @@ ScanTab:Button({
             end
             jsonOutput = jsonOutput .. "  ]\n}"
             
-            _G.JsonOutputBox:SetValue(jsonOutput)
+            if _G.JsonOutputBox then _G.JsonOutputBox:SetValue(jsonOutput) end
         end)
     end
 })
@@ -125,7 +123,7 @@ ScanTab:Paragraph({ Title = "Output", Desc = "Copy this JSON and paste it into y
 _G.JsonOutputBox = ScanTab:Input({ Title = "Generated JSON", Placeholder = "Found spots will appear here...", Callback = function() end })
 
 -- ==========================================
--- 🚜 AUTO-FARM TAB (From V28)
+-- 🚜 AUTO-FARM TAB
 -- ==========================================
 local FarmTab = Window:Tab({ Title = "Auto-Farm", Icon = "tractor" })
 local CONFIG_URL = "https://raw.githubusercontent.com/Charlili-Blyte/TDX/main/maps.json"
@@ -148,8 +146,8 @@ FarmTab:Button({
                 for mapName, _ in pairs(MapConfigs) do table.insert(mapNames, mapName) end
                 if #mapNames > 0 then
                     CurrentTowers = MapConfigs[mapNames[1]]
-                    MapDropdown:Refresh(mapNames)
-                    MapDropdown:SetValue(mapNames[1])
+                    if MapDropdown then MapDropdown:Refresh(mapNames) end
+                    if MapDropdown then MapDropdown:SetValue(mapNames[1]) end
                     FarmStatus:SetDesc("🟢 Config Loaded!")
                 end
             end
@@ -179,7 +177,6 @@ FarmTab:Toggle({
                     end
                     
                     if soloBtn then
-                        -- Need to join (use V28 logic here)
                         FarmStatus:SetDesc("🟡 Joining...")
                         task.wait(20)
                     else
@@ -209,3 +206,16 @@ FarmTab:Toggle({
         end
     end
 })
+
+-- ==========================================
+-- ⌨️ PANIC KEYBIND
+-- ==========================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if UserInputService:GetFocusedTextBox() then return end
+    if input.KeyCode == Enum.KeyCode.P then
+        AutoFarmActive = false
+        isScanning = false
+        FarmStatus:SetDesc("⚪ Bot is Idle")
+        Notify("PANIC", "Auto-Farm stopped.")
+    end
+end)
