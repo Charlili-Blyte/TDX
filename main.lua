@@ -1,5 +1,5 @@
 --[[
-    🟩 TDX MACRO HUB V23 - KEYBIND RESCUE
+    🟩 TDX MACRO HUB V24 - CLEAN RECORDER & STATUS
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -10,7 +10,7 @@ local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-print("🟩 V23 Script Loaded")
+print("🟩 V24 Script Loaded")
 
 -- ==========================================
 -- 🛡️ SECURITY
@@ -26,7 +26,7 @@ end)
 -- 🎨 WINDUI WINDOW
 -- ==========================================
 local Window = WindUI:CreateWindow({
-    Title = "🟩 TDX V23",
+    Title = "🟩 TDX V24",
     Folder = "TDXMassive",
     Size = UDim2.fromOffset(650, 520),
     Transparent = true,
@@ -37,16 +37,30 @@ local Window = WindUI:CreateWindow({
 })
 
 local function Notify(title, text)
-    print("[Notification] " .. title .. ": " .. text)
+    print("[TDX] " .. title .. ": " .. text)
     pcall(function() Window:Notify({ Title = title, Content = text, Duration = 3 }) end)
 end
 
 -- ==========================================
--- ⏺ RECORDER
+-- ⏺ RECORDER WITH LIVE STATUS
 -- ==========================================
 local MacroTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
 local state = { recording = false, playing = false, speed = 1.0, events = {}, last_time = 0, loop = false }
 
+-- 1. Create the Status Label
+local StatusParagraph = MacroTab:Paragraph({ Title = "Status:", Desc = "⚪ Idle" })
+
+local function UpdateStatus()
+    if state.recording then
+        pcall(function() StatusParagraph:SetDesc("🔴 RECORDING...") end)
+    elseif state.playing then
+        pcall(function() StatusParagraph:SetDesc("🟢 PLAYING...") end)
+    else
+        pcall(function() StatusParagraph:SetDesc("⚪ Idle") end)
+    end
+end
+
+-- 2. Recording Logic
 local function add_event(data)
     if not state.recording then return end
     local now = os.clock()
@@ -88,20 +102,30 @@ UserInputService.InputChanged:Connect(function(input, gp)
     end
 end)
 
+-- 3. Playback Logic
 local function PlayMacro()
     if state.playing then 
         state.playing = false
+        UpdateStatus()
         Notify("Playback", "Stopped")
         return 
     end
     
-    if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then
-        Notify("Error", "File not found!")
+    -- Check if name is valid
+    if not _G.StrategyName or _G.StrategyName == "" or _G.StrategyName == "None" then
+        Notify("Error", "Please type a name or select a strategy first!")
+        return
+    end
+    
+    -- Check if file actually exists
+    if not isfile(_G.StrategyName .. ".json") then
+        Notify("Error", "File '" .. _G.StrategyName .. ".json' not found! Did you save it?")
         return
     end
     
     local data = HttpService:JSONDecode(readfile(_G.StrategyName .. ".json"))
     state.playing = true
+    UpdateStatus()
     Notify("Playback", "Playing...")
     
     task.spawn(function()
@@ -127,11 +151,17 @@ local function PlayMacro()
         end
         mouse1release(); mouse2release()
         state.playing = false
+        UpdateStatus()
         Notify("Playback", "Finished")
     end)
 end
 
 local function ToggleRecord()
+    if state.playing then
+        Notify("Error", "Stop playback before recording!")
+        return
+    end
+    
     state.recording = not state.recording 
     if state.recording then
         state.events = {}; state.last_time = os.clock()
@@ -139,20 +169,44 @@ local function ToggleRecord()
     else
         Notify("Recorder", "Recording stopped")
     end
+    UpdateStatus()
 end
 
+-- 4. UI Elements
 MacroTab:Button({ Title = "⏺ Start / Stop Recording [Key: [ ]", Callback = ToggleRecord })
-MacroTab:Input({ Title = "Save Name", Placeholder = "Enter Name...", Callback = function(text) _G.StrategyName = text end })
 
+-- File Name Input
+local NameInput = MacroTab:Input({ 
+    Title = "Save / Load Name", 
+    Placeholder = "Type name here...", 
+    Callback = function(text) _G.StrategyName = text end 
+})
+
+-- Save Button
 MacroTab:Button({
     Title = "💾 Save Strategy",
     Callback = function()
-        if not _G.StrategyName or _G.StrategyName == "" then Notify("Error", "Enter a name!") return end
+        if not _G.StrategyName or _G.StrategyName == "" or _G.StrategyName == "None" then 
+            Notify("Error", "Enter a name first!") 
+            return 
+        end
+        if #state.events == 0 then
+            Notify("Error", "No events recorded! Click Record first.")
+            return
+        end
+        
         local ok = pcall(function() writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(state.events)) end)
-        if ok then Notify("Saved", "Saved " .. _G.StrategyName) else Notify("Error", "Failed to write file.") end
+        if ok then 
+            Notify("Saved", "Saved " .. _G.StrategyName .. ".json")
+        else 
+            Notify("Error", "Failed to write file.") 
+        end
     end
 })
 
+MacroTab:Divider()
+
+-- Dropdown Setup
 local files = listfiles() or {}
 local macroList = {}
 for _, f in ipairs(files) do
@@ -160,33 +214,38 @@ for _, f in ipairs(files) do
 end
 if #macroList == 0 then table.insert(macroList, "None") end
 
-_G.MacroDropdown = MacroTab:Dropdown({ Title = "Select Strategy", Values = macroList, Callback = function(option) _G.StrategyName = option end })
+-- Dropdown Element
+_G.MacroDropdown = MacroTab:Dropdown({ 
+    Title = "Select Saved Strategy", 
+    Values = macroList, 
+    Callback = function(option) 
+        _G.StrategyName = option 
+        -- Auto-fill the text box so you know what's selected
+        pcall(function() NameInput:SetValue(option) end)
+    end 
+})
+
 MacroTab:Slider({ Title = "Playback Speed", Value = { Min = 0.1, Max = 3.0, Default = 1.0 }, Step = 0.1, Callback = function(value) state.speed = value end })
 MacroTab:Toggle({ Title = "Loop Playback", Value = false, Callback = function(bool) state.loop = bool end })
 MacroTab:Button({ Title = "▶ Play Macro [Key: ]", Callback = PlayMacro })
 
 -- ==========================================
--- ⌨️ THE NEW KEYBINDS
+-- ⌨️ KEYBINDS
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    -- If the user is typing in the Strategy Name box, don't trigger keybinds
     if UserInputService:GetFocusedTextBox() then return end
     
-    -- Press '[' to Record
     if input.KeyCode == Enum.KeyCode.LeftBracket then
-        print("Keybind Detected: Left Bracket [")
+        print("Keybind Detected: [")
         ToggleRecord()
-        
-    -- Press ']' to Play
     elseif input.KeyCode == Enum.KeyCode.RightBracket then
-        print("Keybind Detected: Right Bracket ]")
+        print("Keybind Detected: ]")
         PlayMacro()
-        
-    -- Press 'P' to Panic Stop
     elseif input.KeyCode == Enum.KeyCode.P then
         print("Keybind Detected: P")
         state.recording = false
         state.playing = false
-        Notify("PANIC", "All macros stopped")
+        UpdateStatus()
+        Notify("PANIC", "All stopped")
     end
 end)
