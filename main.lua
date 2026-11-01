@@ -221,3 +221,19 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode.Name == RecordKey then toggleRecord() end
     if input.KeyCode.Name == PlayKey then togglePlay() end
 end)
+
+-- Custom UI Toggle (If Right Shift fails)
+local uiVisible = true
+UserInputService.InputBegan:Connect(function(input, gp)
+    if UserInputService:GetFocusedTextBox() then return end
+    
+    -- Press 'RightControl' to hide/show the UI
+    if input.KeyCode == Enum.KeyCode.RightControl then
+        uiVisible = not uiVisible
+        if uiVisible then
+            Window:Open() -- Brings the window back
+        else
+            Window:Close() -- Hides the window
+        end
+    end
+end)
