@@ -1,8 +1,8 @@
 --[[
-    🟩 TDX MACRO HUB V35 - NATIVE TABS & COORDINATE RECORDER
-    No External Libraries. 100% Native Roblox UI.
+    🟩 TDX MACRO HUB V36 - PREMIUM UI (Fixed Keybinds)
 --]]
 
+local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
@@ -11,14 +11,18 @@ local CoreGui = game:GetService("CoreGui")
 
 -- Cleanup old UIs
 if CoreGui:FindFirstChild("TDX_MainUI") then CoreGui.TDX_MainUI:Destroy() end
-if CoreGui:FindFirstChild("TDX_ActionRecorder") then CoreGui.TDX_ActionRecorder:Destroy() end
+if CoreGui:FindFirstChild("WindUI") then 
+    local old = CoreGui:FindFirstChild("WindUI")
+    if old:FindFirstChild("TDX Premium") then old["TDX Premium"]:Destroy() end 
+end
 
 -- ==========================================
--- 🔑 SETTINGS
+-- 🔑 CUSTOM KEYBIND VARIABLES
 -- ==========================================
 local RecordKey = "Z"
 local PlayKey = "X"
 local AbilityKey = "G"
+
 local isRecording = false
 local isPlaying = false
 local loopPlayback = false
@@ -26,9 +30,6 @@ local actions = {}
 local lastTowerKey = "1"
 local lastPlacedIndex = 0
 
--- ==========================================
--- 🧠 HELPER FUNCTIONS (Zero physical movement)
--- ==========================================
 local function vimPressKey(keyName)
     local key = Enum.KeyCode[keyName]
     if key then
@@ -48,315 +49,43 @@ local function vimClick(x, y)
 end
 
 -- ==========================================
--- 🎨 NATIVE UI CREATION
+-- 🎨 WINDUI WINDOW
 -- ==========================================
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TDX_MainUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
+local Window = WindUI:CreateWindow({
+    Title = "🟩 TDX Premium",
+    Folder = "TDXPremium",
+    Size = UDim2.fromOffset(600, 450),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 170,
+    HasOutline = false,
+    ToggleKey = "RightShift",
+})
 
--- Main Window
-local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 400)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -200)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-local stroke = Instance.new("UIStroke", MainFrame)
-stroke.Color = Color3.fromRGB(34, 197, 94)
-stroke.Thickness = 1
-
--- Top Bar
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 35)
-Title.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-Title.Text = "🟩 TDX MACRO V35"
-Title.TextColor3 = Color3.fromRGB(34, 197, 94)
-Title.Font = Enum.Font.GothamBold
-Title.TextSize = 14
-Title.Parent = MainFrame
-Instance.new("UICorner", Title).CornerRadius = UDim.new(0, 8)
-
--- Tabs
-local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1, -20, 0, 30)
-TabBar.Position = UDim2.new(0, 10, 0, 45)
-TabBar.BackgroundTransparency = 1
-TabBar.Parent = MainFrame
-
-local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -20, 1, -85)
-ContentArea.Position = UDim2.new(0, 10, 0, 80)
-ContentArea.BackgroundTransparency = 1
-ContentArea.Parent = MainFrame
-
-local function CreateTabButton(text, xPos)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 75, 1, 0)
-    btn.Position = UDim2.new(0, xPos, 0, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 11
-    btn.Parent = TabBar
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-    return btn
-end
-
-local RecTabBtn = CreateTabButton("Recorder", 0)
-local PlayTabBtn = CreateTabButton("Player", 80)
-local KeyTabBtn = CreateTabButton("Settings", 160)
-local ScanTabBtn = CreateTabButton("Scanner", 240)
-
--- Frames
-local function CreatePage()
-    local f = Instance.new("Frame")
-    f.Size = UDim2.new(1, 0, 1, 0)
-    f.BackgroundTransparency = 1
-    f.Visible = false
-    f.Parent = ContentArea
-    return f
-end
-
-local RecPage = CreatePage()
-local PlayPage = CreatePage()
-local KeyPage = CreatePage()
-local ScanPage = CreatePage()
-
-local function SwitchTab(page, btn)
-    RecPage.Visible = false; PlayPage.Visible = false; KeyPage.Visible = false; ScanPage.Visible = false
-    RecTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35); PlayTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    KeyTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35); ScanTabBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    
-    page.Visible = true
-    btn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-    btn.TextColor3 = Color3.fromRGB(0, 0, 0)
-end
-
-RecTabBtn.MouseButton1Click:Connect(function() SwitchTab(RecPage, RecTabBtn) end)
-PlayTabBtn.MouseButton1Click:Connect(function() SwitchTab(PlayPage, PlayTabBtn) end)
-KeyTabBtn.MouseButton1Click:Connect(function() SwitchTab(KeyPage, KeyTabBtn) end)
-ScanTabBtn.MouseButton1Click:Connect(function() SwitchTab(ScanPage, ScanTabBtn) end)
+local RecTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
+local PlayTab = Window:Tab({ Title = "Player", Icon = "play" })
+local KeyTab = Window:Tab({ Title = "Settings", Icon = "settings" })
 
 -- ==========================================
--- 📄 PAGE 1: RECORDER
+-- 🧠 CORE LOGIC (Direct Functions)
 -- ==========================================
-local StatusText = Instance.new("TextLabel")
-StatusText.Size = UDim2.new(1, 0, 0, 20)
-StatusText.BackgroundTransparency = 1
-StatusText.Text = "Status: Idle (0 actions)"
-StatusText.TextColor3 = Color3.fromRGB(200, 200, 200)
-StatusText.Font = Enum.Font.Gotham
-StatusText.TextSize = 12
-StatusText.Parent = RecPage
-
-local RecBtn = Instance.new("TextButton")
-RecBtn.Size = UDim2.new(1, 0, 0, 40)
-RecBtn.Position = UDim2.new(0, 0, 0, 30)
-RecBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-RecBtn.Text = "⏺ START RECORDING (Key: Z)"
-RecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-RecBtn.Font = Enum.Font.GothamBold
-RecBtn.Parent = RecPage
-Instance.new("UICorner", RecBtn).CornerRadius = UDim.new(0, 6)
-
-local SaveBtn = Instance.new("TextButton")
-SaveBtn.Size = UDim2.new(1, 0, 0, 40)
-SaveBtn.Position = UDim2.new(0, 0, 0, 80)
-SaveBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-SaveBtn.Text = "💾 PRINT JSON TO F9"
-SaveBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-SaveBtn.Font = Enum.Font.GothamBold
-SaveBtn.Parent = RecPage
-Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
-
-local HelpText = Instance.new("TextLabel")
-HelpText.Size = UDim2.new(1, 0, 0, 60)
-HelpText.Position = UDim2.new(0, 0, 0, 130)
-HelpText.BackgroundTransparency = 1
-HelpText.Text = "How to use: Click Start, place a tower, press E twice, press G. Click Stop. Click Print to see JSON."
-HelpText.TextColor3 = Color3.fromRGB(150, 150, 150)
-HelpText.Font = Enum.Font.Gotham
-HelpText.TextSize = 11
-HelpText.TextWrapped = true
-HelpText.Parent = RecPage
-
--- ==========================================
--- 📄 PAGE 2: PLAYER
--- ==========================================
-local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(1, 0, 0, 40)
-PlayBtn.Position = UDim2.new(0, 0, 0, 0)
-PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
-PlayBtn.Text = "▶ PLAY MACRO (Key: X)"
-PlayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayBtn.Font = Enum.Font.GothamBold
-PlayBtn.Parent = PlayPage
-Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 6)
-
-local LoopBtn = Instance.new("TextButton")
-LoopBtn.Size = UDim2.new(1, 0, 0, 30)
-LoopBtn.Position = UDim2.new(0, 0, 0, 50)
-LoopBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-LoopBtn.Text = "Loop: OFF"
-LoopBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-LoopBtn.Font = Enum.Font.GothamBold
-LoopBtn.Parent = PlayPage
-Instance.new("UICorner", LoopBtn).CornerRadius = UDim.new(0, 6)
-
-local PlayStatus = Instance.new("TextLabel")
-PlayStatus.Size = UDim2.new(1, 0, 0, 20)
-PlayStatus.Position = UDim2.new(0, 0, 0, 90)
-PlayStatus.BackgroundTransparency = 1
-PlayStatus.Text = "Ready to play."
-PlayStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
-PlayStatus.Font = Enum.Font.Gotham
-PlayStatus.Parent = PlayPage
-
--- ==========================================
--- 📄 PAGE 3: KEYBINDS
--- ==========================================
-local function CreateKeybindInput(text, defaultVal, yPos, callback)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(0, 150, 0, 25)
-    lbl.Position = UDim2.new(0, 0, 0, yPos)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = KeyPage
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0, 80, 0, 25)
-    box.Position = UDim2.new(1, -80, 0, yPos)
-    box.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-    box.TextColor3 = Color3.fromRGB(255, 255, 255)
-    box.Text = defaultVal
-    box.Font = Enum.Font.Code
-    box.Parent = KeyPage
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-    
-    box.FocusLost:Connect(function()
-        local txt = string.upper(box.Text)
-        if #txt > 0 then callback(txt); box.Text = txt end
-    end)
-end
-
-CreateKeybindInput("Record Key:", RecordKey, 10, function(val) RecordKey = val; RecBtn.Text = "⏺ START RECORDING (Key: "..val..")" end)
-CreateKeybindInput("Play Key:", PlayKey, 45, function(val) PlayKey = val; PlayBtn.Text = "▶ PLAY MACRO (Key: "..val..")" end)
-CreateKeybindInput("Ability Key:", AbilityKey, 80, function(val) AbilityKey = val end)
-
--- ==========================================
--- 📄 PAGE 4: SCANNER
--- ==========================================
-local ScanBtn = Instance.new("TextButton")
-ScanBtn.Size = UDim2.new(1, 0, 0, 40)
-ScanBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 50)
-ScanBtn.Text = "🔍 START AUTO-SCAN"
-ScanBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-ScanBtn.Font = Enum.Font.GothamBold
-ScanBtn.Parent = ScanPage
-Instance.new("UICorner", ScanBtn).CornerRadius = UDim.new(0, 6)
-
-local ScanStatus = Instance.new("TextLabel")
-ScanStatus.Size = UDim2.new(1, 0, 0, 60)
-ScanStatus.Position = UDim2.new(0, 0, 0, 50)
-ScanStatus.BackgroundTransparency = 1
-ScanStatus.Text = "Needs 10k+ Cash. Sweeps screen for valid spots."
-ScanStatus.TextColor3 = Color3.fromRGB(200, 200, 200)
-ScanStatus.Font = Enum.Font.Gotham
-ScanStatus.TextWrapped = true
-ScanStatus.Parent = ScanPage
-
--- ==========================================
--- 🧠 CORE LOGIC
--- ==========================================
-local function updateStatus()
-    if isRecording then
-        StatusText.Text = "Status: 🔴 RECORDING (" .. #actions .. " actions)"
-        StatusText.TextColor3 = Color3.fromRGB(200, 50, 50)
-    else
-        StatusText.Text = "Status: Idle (" .. #actions .. " actions)"
-        StatusText.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end
-
--- Record Inputs
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or not isRecording then return end
-    
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        local keyName = input.KeyCode.Name
-        if string.match(keyName, "^%d$") then
-            lastTowerKey = keyName
-        elseif keyName == "E" then
-            if lastPlacedIndex > 0 then
-                actions[lastPlacedIndex].upgrades = actions[lastPlacedIndex].upgrades + 1
-                updateStatus()
-            end
-        elseif keyName == AbilityKey then
-            table.insert(actions, {action = "ability", key = keyName})
-            updateStatus()
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or not isRecording then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mouse = UserInputService:GetMouseLocation()
-        table.insert(actions, {
-            action = "place", 
-            tower = lastTowerKey, 
-            x = math.floor(mouse.X), 
-            y = math.floor(mouse.Y), 
-            upgrades = 0
-        })
-        lastPlacedIndex = #actions
-        updateStatus()
-    end
-end)
-
--- Buttons
-RecBtn.MouseButton1Click:Connect(function()
+local function toggleRecord()
     if isPlaying then return end
     isRecording = not isRecording
     if isRecording then
         actions = {}; lastPlacedIndex = 0
-        RecBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        RecBtn.Text = "⏹ STOP RECORDING"
+        Window:Notify({ Title = "Recorder", Content = "🔴 Recording Started", Duration = 3 })
     else
-        RecBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        RecBtn.Text = "⏺ START RECORDING (Key: "..RecordKey..")"
+        Window:Notify({ Title = "Recorder", Content = "⏹ Recording Stopped (" .. #actions .. " actions)", Duration = 3 })
     end
-    updateStatus()
-end)
+end
 
-SaveBtn.MouseButton1Click:Connect(function()
-    print("========================================")
-    print("COPY THIS JSON:")
-    print(HttpService:JSONEncode(actions))
-    print("========================================")
-end)
-
-LoopBtn.MouseButton1Click:Connect(function()
-    loopPlayback = not loopPlayback
-    LoopBtn.Text = loopPlayback and "Loop: ON" or "Loop: OFF"
-    LoopBtn.BackgroundColor3 = loopPlayback and Color3.fromRGB(34, 197, 94) or Color3.fromRGB(40, 40, 40)
-end)
-
-PlayBtn.MouseButton1Click:Connect(function()
+local function togglePlay()
     if isRecording or #actions == 0 then return end
     isPlaying = not isPlaying
+    
     if isPlaying then
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        PlayBtn.Text = "⏹ STOP PLAYING"
-        PlayStatus.Text = "Playing..."
-        
+        Window:Notify({ Title = "Player", Content = "▶ Playing Macro...", Duration = 3 })
         task.spawn(function()
             repeat
                 for i, act in ipairs(actions) do
@@ -373,26 +102,118 @@ PlayBtn.MouseButton1Click:Connect(function()
                     end
                     task.wait(0.5)
                 end
-                if loopPlayback and isPlaying then task.wait(5) end
+                if loopPlayback and isPlaying then 
+                    Window:Notify({ Title = "Player", Content = "🔄 Looping...", Duration = 2 })
+                    task.wait(5) 
+                end
             until not loopPlayback or not isPlaying
+            
             isPlaying = false
-            PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
-            PlayBtn.Text = "▶ PLAY MACRO (Key: "..PlayKey..")"
-            PlayStatus.Text = "Ready to play."
+            Window:Notify({ Title = "Player", Content = "✅ Playback Finished", Duration = 3 })
         end)
     else
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
-        PlayBtn.Text = "▶ PLAY MACRO (Key: "..PlayKey..")"
-        PlayStatus.Text = "Stopped."
+        Window:Notify({ Title = "Player", Content = "⏹ Stopped Playback", Duration = 3 })
+    end
+end
+
+-- ==========================================
+-- 📄 TAB 1: RECORDER
+-- ==========================================
+RecTab:Paragraph({ Title = "Action Recorder", Desc = "Records exact tower placements and upgrades without moving your physical mouse." })
+
+RecTab:Button({ Title = "⏺ Toggle Recording [Z]", Callback = toggleRecord })
+
+RecTab:Button({
+    Title = "💾 Print JSON to F9",
+    Callback = function()
+        if #actions == 0 then return end
+        print("========================================")
+        print("COPY THIS JSON:")
+        print(HttpService:JSONEncode(actions))
+        print("========================================")
+        Window:Notify({ Title = "Saved", Content = "JSON printed to console.", Duration = 3 })
+    end
+})
+
+-- ==========================================
+-- 📄 TAB 2: PLAYER
+-- ==========================================
+PlayTab:Paragraph({ Title = "Macro Player", Desc = "Plays back the recorded actions. Your physical cursor will NOT move." })
+
+PlayTab:Button({ Title = "▶ Toggle Playback [X]", Callback = togglePlay })
+
+PlayTab:Toggle({
+    Title = "Loop Playback",
+    Value = false,
+    Callback = function(val) loopPlayback = val end
+})
+
+-- ==========================================
+-- 📄 TAB 3: SETTINGS
+-- ==========================================
+KeyTab:Paragraph({ Title = "Keybinds", Desc = "Change these to keys that work on your keyboard." })
+
+KeyTab:Input({ Title = "Record Key", Placeholder = RecordKey, Callback = function(txt) 
+    if #txt > 0 then RecordKey = string.upper(txt) end 
+end})
+
+KeyTab:Input({ Title = "Play Key", Placeholder = PlayKey, Callback = function(txt) 
+    if #txt > 0 then PlayKey = string.upper(txt) end 
+end})
+
+KeyTab:Input({ Title = "Ability Key (G)", Placeholder = AbilityKey, Callback = function(txt) 
+    if #txt > 0 then AbilityKey = string.upper(txt) end 
+end})
+
+-- ==========================================
+-- 🧠 RECORDING LISTENERS
+-- ==========================================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp or not isRecording then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        local keyName = input.KeyCode.Name
+        if string.match(keyName, "^%d$") then
+            lastTowerKey = keyName
+        elseif keyName == "E" then
+            if lastPlacedIndex > 0 then
+                actions[lastPlacedIndex].upgrades = actions[lastPlacedIndex].upgrades + 1
+                print("Upgrade recorded for Tower #" .. lastPlacedIndex)
+            end
+        elseif keyName == AbilityKey then
+            table.insert(actions, {action = "ability", key = keyName})
+            print("Ability recorded: " .. keyName)
+        end
     end
 end)
 
--- Global Keybinds
 UserInputService.InputBegan:Connect(function(input, gp)
-    if UserInputService:GetFocusedTextBox() then return end
-    if input.KeyCode.Name == RecordKey then RecBtn:Activate() end
-    if input.KeyCode.Name == PlayKey then PlayBtn:Activate() end
+    if gp or not isRecording then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        local mouse = UserInputService:GetMouseLocation()
+        table.insert(actions, {
+            action = "place", 
+            tower = lastTowerKey, 
+            x = math.floor(mouse.X), 
+            y = math.floor(mouse.Y), 
+            upgrades = 0
+        })
+        lastPlacedIndex = #actions
+        print("Placement recorded: Tower " .. lastTowerKey .. " at " .. math.floor(mouse.X) .. ", " .. math.floor(mouse.Y))
+    end
 end)
 
--- Start on Recorder Tab
-SwitchTab(RecPage, RecTabBtn)
+-- ==========================================
+-- ⌨️ GLOBAL KEYBINDS (NO :Activate)
+-- ==========================================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if UserInputService:GetFocusedTextBox() then return end
+    
+    -- Directly call the functions instead of using :Activate()
+    if input.KeyCode.Name == RecordKey then
+        toggleRecord()
+    elseif input.KeyCode.Name == PlayKey then
+        togglePlay()
+    end
+end)
+
+print("✅ V36 Loaded successfully!")
