@@ -1,30 +1,36 @@
 --[[
-    🟩 TDX MACRO HUB V37 - PREMIUM UI (Remapped Keys)
+    🟩 TDX MACRO HUB V40 - FINAL STABLE
 --]]
 
-local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+local success, WindUI = pcall(function()
+    return loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
+end)
+
+if not success then
+    print("🔴 ERROR: Failed to download WindUI.")
+    return
+end
+
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
-local player = game.Players.LocalPlayer
 local CoreGui = game:GetService("CoreGui")
 
--- Cleanup old UIs (Forces a fresh load)
+-- Cleanup old UIs
 if CoreGui:FindFirstChild("WindUI") then 
     local old = CoreGui:FindFirstChild("WindUI")
     if old:FindFirstChild("TDX Premium") then old["TDX Premium"]:Destroy() end 
 end
 
 -- ==========================================
--- 🔑 CUSTOM KEYBIND VARIABLES
+-- 🔑 SETTINGS & REMAPPED KEYS
 -- ==========================================
 local RecordKey = "Z"
 local PlayKey = "X"
 
--- This is the magic remap:
--- You press 'C', but the macro sends 'G' to the game.
+-- Press C, but the macro sends G
 local TriggerAbilityKey = "C" 
-local ActualAbilityKey = "G"
+local ActualAbilityKey = "G" 
 
 local isRecording = false
 local isPlaying = false
@@ -33,6 +39,33 @@ local actions = {}
 local lastTowerKey = "1"
 local lastPlacedIndex = 0
 
+-- ==========================================
+-- 🎨 WINDUI WINDOW
+-- ==========================================
+local Window = WindUI:CreateWindow({
+    Title = "🟩 TDX Premium V40",
+    Folder = "TDXPremium",
+    Size = UDim2.fromOffset(600, 450),
+    Transparent = true,
+    Theme = "Dark",
+    SideBarWidth = 170,
+    HasOutline = false,
+    ToggleKey = "RightShift",
+})
+
+-- 🛡️ SAFE NOTIFY (This prevents the crash)
+local function Notify(title, text)
+    pcall(function()
+        WindUI:Notify({ Title = title, Content = text, Duration = 3 })
+    end)
+end
+
+local RecTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
+local PlayTab = Window:Tab({ Title = "Player", Icon = "play" })
+
+-- ==========================================
+-- 🧠 HELPER FUNCTIONS
+-- ==========================================
 local function vimPressKey(keyName)
     local key = Enum.KeyCode[keyName]
     if key then
@@ -52,34 +85,16 @@ local function vimClick(x, y)
 end
 
 -- ==========================================
--- 🎨 WINDUI WINDOW
--- ==========================================
-local Window = WindUI:CreateWindow({
-    Title = "🟩 TDX Premium V37", -- LOOK FOR V37
-    Folder = "TDXPremium",
-    Size = UDim2.fromOffset(600, 450),
-    Transparent = true,
-    Theme = "Dark",
-    SideBarWidth = 170,
-    HasOutline = false,
-    ToggleKey = "RightShift",
-})
-
-local RecTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
-local PlayTab = Window:Tab({ Title = "Player", Icon = "play" })
-local KeyTab = Window:Tab({ Title = "Settings", Icon = "settings" })
-
--- ==========================================
--- 🧠 CORE LOGIC
+-- CORE LOGIC
 -- ==========================================
 local function toggleRecord()
     if isPlaying then return end
     isRecording = not isRecording
     if isRecording then
         actions = {}; lastPlacedIndex = 0
-        Window:Notify({ Title = "Recorder", Content = "🔴 Recording Started", Duration = 3 })
+        Notify("Recorder", "🔴 Recording Started")
     else
-        Window:Notify({ Title = "Recorder", Content = "⏹ Recording Stopped (" .. #actions .. " actions)", Duration = 3 })
+        Notify("Recorder", "⏹ Recording Stopped (" .. #actions .. " actions)")
     end
 end
 
@@ -88,7 +103,7 @@ local function togglePlay()
     isPlaying = not isPlaying
     
     if isPlaying then
-        Window:Notify({ Title = "Player", Content = "▶ Playing Macro...", Duration = 3 })
+        Notify("Player", "▶ Playing Macro...")
         task.spawn(function()
             repeat
                 for i, act in ipairs(actions) do
@@ -100,30 +115,29 @@ local function togglePlay()
                         task.wait(0.2)
                         for u = 1, act.upgrades do vimPressKey("E"); task.wait(0.3) end
                     elseif act.action == "ability" then
-                        -- It plays back the ActualAbilityKey (G)
-                        vimPressKey(act.key)
+                        vimPressKey(act.key) -- This presses 'G'
                         task.wait(0.3)
                     end
                     task.wait(0.5)
                 end
                 if loopPlayback and isPlaying then 
-                    Window:Notify({ Title = "Player", Content = "🔄 Looping...", Duration = 2 })
+                    Notify("Player", "🔄 Looping...")
                     task.wait(5) 
                 end
             until not loopPlayback or not isPlaying
             
             isPlaying = false
-            Window:Notify({ Title = "Player", Content = "✅ Playback Finished", Duration = 3 })
+            Notify("Player", "✅ Playback Finished")
         end)
     else
-        Window:Notify({ Title = "Player", Content = "⏹ Stopped Playback", Duration = 3 })
+        Notify("Player", "⏹ Stopped Playback")
     end
 end
 
 -- ==========================================
 -- 📄 TAB 1: RECORDER
 -- ==========================================
-RecTab:Paragraph({ Title = "Action Recorder", Desc = "Records tower placements and upgrades without moving your physical mouse." })
+RecTab:Paragraph({ Title = "Action Recorder", Desc = "Press Z to record. Press C to log an ability (it will press G on playback)." })
 RecTab:Button({ Title = "⏺ Toggle Recording [Z]", Callback = toggleRecord })
 
 RecTab:Button({
@@ -134,33 +148,20 @@ RecTab:Button({
         print("COPY THIS JSON:")
         print(HttpService:JSONEncode(actions))
         print("========================================")
-        Window:Notify({ Title = "Saved", Content = "JSON printed to console.", Duration = 3 })
+        Notify("Saved", "JSON printed to F9 console.")
     end
 })
 
 -- ==========================================
 -- 📄 TAB 2: PLAYER
 -- ==========================================
-PlayTab:Paragraph({ Title = "Macro Player", Desc = "Plays back the recorded actions. Your physical cursor will NOT move." })
+PlayTab:Paragraph({ Title = "Macro Player", Desc = "Plays back actions. Cursor will NOT move." })
 PlayTab:Button({ Title = "▶ Toggle Playback [X]", Callback = togglePlay })
 PlayTab:Toggle({
     Title = "Loop Playback",
     Value = false,
     Callback = function(val) loopPlayback = val end
 })
-
--- ==========================================
--- 📄 TAB 3: SETTINGS
--- ==========================================
-KeyTab:Paragraph({ Title = "Keybinds", Desc = "You press 'C' to record the ability, but the macro will press 'G' during playback." })
-
-KeyTab:Input({ Title = "Record Key", Placeholder = RecordKey, Callback = function(txt) 
-    if #txt > 0 then RecordKey = string.upper(txt) end 
-end})
-
-KeyTab:Input({ Title = "Play Key", Placeholder = PlayKey, Callback = function(txt) 
-    if #txt > 0 then PlayKey = string.upper(txt) end 
-end})
 
 -- ==========================================
 -- 🧠 RECORDING LISTENERS
@@ -170,21 +171,17 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType == Enum.UserInputType.Keyboard then
         local keyName = input.KeyCode.Name
         
-        -- Tower Selection
         if string.match(keyName, "^%d$") then
             lastTowerKey = keyName
-            
-        -- Upgrades
         elseif keyName == "E" then
             if lastPlacedIndex > 0 then
                 actions[lastPlacedIndex].upgrades = actions[lastPlacedIndex].upgrades + 1
                 print("Upgrade recorded for Tower #" .. lastPlacedIndex)
             end
-            
-        -- ABILITY LOGIC: Press C, Save as G
         elseif keyName == TriggerAbilityKey then
+            -- Press C, save as G
             table.insert(actions, {action = "ability", key = ActualAbilityKey})
-            print("Ability recorded (Pressing C, saving as G)")
+            print("Ability recorded (Pressed C, saved as G)")
         end
     end
 end)
@@ -214,4 +211,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.KeyCode.Name == PlayKey then togglePlay() end
 end)
 
-print("✅ V37 Loaded successfully! Check top of UI.")
+print("✅ V40 Loaded successfully!")
