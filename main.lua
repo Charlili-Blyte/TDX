@@ -191,15 +191,15 @@ _G.MacroDropdown = MacroTab:Dropdown({
 
 MacroTab:Slider({ Title = "Playback Speed", Value = { Min = 0.1, Max = 3.0, Default = 1.0 }, Step = 0.1, Callback = function(value) state.speed = value end })
 MacroTab:Toggle({ Title = "Loop Playback", Value = false, Callback = function(bool) state.loop = bool end })
-MacroTab:Button({ Title = "▶ Play Macro [Key: B]", Callback = PlayMacro })
+MacroTab:Button({ Title = "▶ Play Macro [Key: C]", Callback = PlayMacro })
 
 -- ==========================================
--- ⌨️ FIXED KEYBINDS (V, B, N)
+-- ⌨️ FIXED KEYBINDS (V, C, N)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
     if input.KeyCode == Enum.KeyCode.V then ToggleRecord()
-    elseif input.KeyCode == Enum.KeyCode.B then PlayMacro()
+    elseif input.KeyCode == Enum.KeyCode.C then PlayMacro()
     elseif input.KeyCode == Enum.KeyCode.N then
         state.recording = false
         state.playing = false
