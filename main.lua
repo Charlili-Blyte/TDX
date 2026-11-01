@@ -1,17 +1,30 @@
 --[[
-    🟩 TDX MACRO HUB V26 - ARMORED EDITION
-    Fixes: Input drops, Camera spin, UI clicks, Keybinds.
+    🟩 TDX MACRO HUB V28 - CONFIG AUTO-FARMER
+    Reads a JSON config from GitHub to place towers automatically.
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
 
+-- ⚠️ CHANGE THIS TO YOUR GITHUB RAW LINK FOR maps.json
+local CONFIG_URL = "https://raw.githubusercontent.com/Charlili-Blyte/TDX/main/maps.json"
+
+-- ==========================================
+-- 🎨 WINDUI WINDOW
+-- ==========================================
 local Window = WindUI:CreateWindow({
-    Title = "🟩 TDX V26", Folder = "TDXMassive", Size = UDim2.fromOffset(650, 520),
-    Transparent = true, Theme = "Dark", SideBarWidth = 170, HasOutline = false, ToggleKey = "RightShift",
+    Title = "🟩 TDX Config Farmer", 
+    Folder = "TDXAuto", 
+    Size = UDim2.fromOffset(600, 450),
+    Transparent = true, 
+    Theme = "Dark", 
+    SideBarWidth = 170, 
+    HasOutline = false, 
+    ToggleKey = "RightShift",
 })
 
 local function Notify(title, text)
@@ -19,191 +32,212 @@ local function Notify(title, text)
 end
 
 -- ==========================================
--- ⏺ THE ARMORED RECORDER
+-- ⚙️ CONFIG LOADER & UI
 -- ==========================================
-local MacroTab = Window:Tab({ Title = "Recorder", Icon = "disc" })
-local state = { recording = false, playing = false, speed = 1.0, events = {}, loop = false }
-local StatusLabel = MacroTab:Paragraph({ Title = "Status", Desc = "⚪ Idle" })
+local FarmTab = Window:Tab({ Title = "Auto-Farm", Icon = "tractor" })
+local AutoFarmActive = false
 
-local function UpdateStatus()
-    local s = "⚪ Idle"
-    if state.recording then s = "🔴 RECORDING..." elseif state.playing then s = "🟢 PLAYING..." end
-    pcall(function() StatusLabel:SetDesc(s) end)
-end
+local MapConfigs = {} -- Stores the loaded JSON data
+local CurrentMapName = "None"
+local CurrentTowers = {}
 
--- 1. Record Logic (Ignores text boxes, records everything else)
-local function add_event(data)
-    if not state.recording then return end
-    data.time = os.clock()
-    table.insert(state.events, data)
-end
+local StatusLabel = FarmTab:Paragraph({ Title = "Status", Desc = "⚪ Idle. Waiting to load config..." })
+local MapDropdown
 
-UserInputService.InputBegan:Connect(function(input)
-    if not state.recording then return end
-    -- Ignore if user is typing in chat or the UI text box
-    if UserInputService:GetFocusedTextBox() then return end 
-
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then 
-        add_event({t="click", x=input.Position.X, y=input.Position.Y, state="down", btn="left"})
-    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then 
-        add_event({t="click", x=input.Position.X, y=input.Position.Y, state="down", btn="right"})
-    elseif input.UserInputType == Enum.UserInputType.Keyboard then 
-        add_event({t="key", key=input.KeyCode.Name, state="down"}) 
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if not state.recording then return end
-    
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then 
-        add_event({t="click", x=input.Position.X, y=input.Position.Y, state="up", btn="left"})
-    elseif input.UserInputType == Enum.UserInputType.MouseButton2 then 
-        add_event({t="click", x=input.Position.X, y=input.Position.Y, state="up", btn="right"})
-    elseif input.UserInputType == Enum.UserInputType.Keyboard then 
-        add_event({t="key", key=input.KeyCode.Name, state="up"}) 
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if not state.recording then return end
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
-        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            if input.Delta.X ~= 0 or input.Delta.Y ~= 0 then
-                add_event({t="camera", x=input.Delta.X, y=input.Delta.Y})
-            end
-        end
-    end
-end)
-
--- 2. Playback Logic (High Precision + Safe Camera)
-local function precise_wait(duration)
-    if duration <= 0 then return end
-    local start = os.clock()
-    -- Busy-wait loop for exact millisecond precision
-    while (os.clock() - start) < duration do
-        -- This keeps the thread busy to prevent frame drops
-    end
-end
-
-local function PlayMacro()
-    if state.playing then state.playing = false; UpdateStatus(); return end
-    if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then Notify("Error", "File not found!"); return end
-    
-    local data = HttpService:JSONDecode(readfile(_G.StrategyName .. ".json"))
-    if #data == 0 then Notify("Error", "File is empty."); return end
-    
-    state.playing = true
-    UpdateStatus()
-    Notify("Playback", "Playing...")
-    
-    task.spawn(function()
-        local last_event_time = data[1].time or os.clock()
-        
-        for i, ev in ipairs(data) do
-            if not state.playing then break end
-            
-            -- Calculate delay between events
-            local delay = 0
-            if i > 1 and ev.time then
-                delay = (ev.time - last_event_time) / state.speed
-                last_event_time = ev.time
-            end
-            
-            if delay > 0 then precise_wait(delay) end
-            
-            -- Execute Input
-            if ev.t == "key" then
-                if ev.state == "down" then keypress(ev.key) else keyrelease(ev.key) end
-            elseif ev.t == "click" then
-                if ev.state == "down" then
-                    if ev.btn == "right" then mouse2press() else mouse1press() end
-                else
-                    if ev.btn == "right" then mouse2release() else mouse1release() end
-                end
-            elseif ev.t == "camera" then
-                -- CAMERA CLAMP: Prevents massive spins from dropping frames
-                local safe_x = math.clamp(ev.x, -100, 100)
-                local safe_y = math.clamp(ev.y, -100, 100)
-                mousemoverel(safe_x, safe_y)
-            end
-        end
-        
-        mouse1release(); mouse2release()
-        state.playing = false
-        UpdateStatus()
-        Notify("Playback", "Finished")
-    end)
-end
-
-local function ToggleRecord()
-    if state.playing then Notify("Error", "Stop playback first!"); return end
-    state.recording = not state.recording 
-    if state.recording then
-        state.events = {}
-        Notify("Recorder", "Recording started")
-    else
-        Notify("Recorder", "Recording stopped")
-    end
-    UpdateStatus()
-end
-
--- 3. UI Elements
-MacroTab:Button({ Title = "⏺ Start / Stop Recording [Key: V]", Callback = ToggleRecord })
-local NameInput = MacroTab:Input({ Title = "Save Name", Placeholder = "Enter Name...", Callback = function(text) _G.StrategyName = text end })
-
-MacroTab:Button({
-    Title = "💾 Save Strategy",
+FarmTab:Button({
+    Title = "🔄 Load Config from GitHub",
     Callback = function()
-        if not _G.StrategyName or _G.StrategyName == "" then Notify("Error", "Enter a name!"); return end
-        if #state.events == 0 then Notify("Error", "Nothing recorded!"); return end
+        StatusLabel:SetDesc("🟡 Fetching config from GitHub...")
+        local success, response = pcall(function() return game:HttpGet(CONFIG_URL) end)
         
-        local ok = pcall(function() writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(state.events)) end)
-        if ok then 
-            Notify("Saved", "Saved " .. _G.StrategyName)
-            -- Refresh Dropdown safely
-            local files = listfiles() or {}
-            local list = {}
-            for _, f in ipairs(files) do
-                if string.find(f, "%.json$") then table.insert(list, (string.gsub(f, "%.json$", ""))) end
+        if success and response and not string.find(response, "404: Not Found") then
+            local decodeSuccess, data = pcall(function() return HttpService:JSONDecode(response) end)
+            if decodeSuccess and data then
+                MapConfigs = data
+                local mapNames = {}
+                for mapName, _ in pairs(MapConfigs) do
+                    table.insert(mapNames, mapName)
+                end
+                
+                if #mapNames > 0 then
+                    CurrentMapName = mapNames[1]
+                    CurrentTowers = MapConfigs[CurrentMapName]
+                    MapDropdown:SetValue(CurrentMapName)
+                    MapDropdown:Refresh(mapNames)
+                    StatusLabel:SetDesc("🟢 Loaded " .. #mapNames .. " maps. Selected: " .. CurrentMapName)
+                    Notify("Success", "Config Loaded!")
+                else
+                    StatusLabel:SetDesc("🔴 Config is empty.")
+                end
+            else
+                StatusLabel:SetDesc("🔴 Failed to parse JSON.")
             end
-            if _G.MacroDropdown then _G.MacroDropdown:Refresh(list) end
-        else 
-            Notify("Error", "Failed to save.")
+        else
+            StatusLabel:SetDesc("🔴 Failed to download config. Check URL.")
+            Notify("Error", "Make sure CONFIG_URL is correct and public.")
         end
     end
 })
 
--- Dropdown
-local files = listfiles() or {}
-local macroList = {}
-for _, f in ipairs(files) do
-    if string.find(f, "%.json$") then table.insert(macroList, (string.gsub(f, "%.json$", ""))) end
-end
-if #macroList == 0 then table.insert(macroList, "None") end
-
-_G.MacroDropdown = MacroTab:Dropdown({ 
-    Title = "Select Saved Strategy", Values = macroList, 
-    Callback = function(option) 
-        _G.StrategyName = option
-        pcall(function() NameInput:SetValue(option) end)
-    end 
+MapDropdown = FarmTab:Dropdown({
+    Title = "Select Map Strategy",
+    Values = {"None"},
+    Callback = function(option)
+        if MapConfigs[option] then
+            CurrentMapName = option
+            CurrentTowers = MapConfigs[option]
+            StatusLabel:SetDesc("🟢 Ready: " .. CurrentMapName .. " (" .. #CurrentTowers .. " towers)")
+        end
+    end
 })
 
-MacroTab:Slider({ Title = "Playback Speed", Value = { Min = 0.1, Max = 3.0, Default = 1.0 }, Step = 0.1, Callback = function(value) state.speed = value end })
-MacroTab:Toggle({ Title = "Loop Playback", Value = false, Callback = function(bool) state.loop = bool end })
-MacroTab:Button({ Title = "▶ Play Macro [Key: C]", Callback = PlayMacro })
+-- ==========================================
+-- 🧠 CORE LOGIC (UI FINDER & CLICKER)
+-- ==========================================
+local function find_ui_element(target_text)
+    for _, obj in ipairs(playerGui:GetDescendants()) do
+        if (obj:IsA("TextButton") or obj:IsA("ImageButton")) then
+            if obj.Name:lower():find(target_text:lower()) then return obj end
+            if obj:IsA("TextButton") and obj.Text:lower():find(target_text:lower()) then return obj end
+        elseif obj:IsA("TextLabel") then
+            if obj.Text:lower():find(target_text:lower()) then
+                local parent_btn = obj.Parent
+                if parent_btn and (parent_btn:IsA("TextButton") or parent_btn:IsA("ImageButton")) then
+                    return parent_btn
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function click_ui_element(btn)
+    if not btn then return false end
+    if getconnections then
+        for _, sig_name in ipairs({"MouseButton1Click", "MouseButton1Down", "Activated"}) do
+            local sig = btn[sig_name]
+            if sig then
+                for _, conn in pairs(getconnections(sig)) do
+                    if conn.Enabled then pcall(function() conn:Fire() end) end
+                end
+            end
+        end
+        return true
+    end
+    return false
+end
+
+local function JoinGame(difficulty)
+    StatusLabel:SetDesc("🟡 Joining " .. difficulty .. "...")
+    local soloBtn = find_ui_element("solo")
+    if soloBtn then click_ui_element(soloBtn) else return end
+    task.wait(2)
+    local survBtn = find_ui_element("survival")
+    if survBtn then click_ui_element(survBtn) else return end
+    task.wait(2)
+    local diffBtn = find_ui_element(difficulty)
+    if diffBtn then click_ui_element(diffBtn) else return end
+end
 
 -- ==========================================
--- ⌨️ FIXED KEYBINDS (V, C, N)
+-- 🚜 THE AUTO-FARM LOOP
+-- ==========================================
+FarmTab:Toggle({
+    Title = "Start Auto-Farm",
+    Desc = "Automatically joins, loads map config, and places.",
+    Value = false,
+    Callback = function(state)
+        AutoFarmActive = state
+        
+        if AutoFarmActive then
+            if CurrentMapName == "None" or #CurrentTowers == 0 then
+                Notify("Error", "Load a config and select a map first!")
+                return
+            end
+
+            Notify("Auto-Farm", "Started for " .. CurrentMapName)
+            task.spawn(function()
+                while AutoFarmActive do
+                    local inLobby = find_ui_element("solo")
+                    
+                    if inLobby then
+                        JoinGame(CurrentMapName)
+                        StatusLabel:SetDesc("🟡 Waiting for map to load (20s)...")
+                        task.wait(20) 
+                    else
+                        StatusLabel:SetDesc("🟢 In-Game: Placing " .. #CurrentTowers .. " towers")
+                        
+                        for i, tower in ipairs(CurrentTowers) do
+                            if not AutoFarmActive then break end
+                            
+                            -- Select Tower
+                            keypress(tower.key)
+                            task.wait(0.2)
+                            keyrelease(tower.key)
+                            task.wait(0.3)
+
+                            -- Place Tower (Hardware Click)
+                            mousemoveabs(tower.x, tower.y)
+                            task.wait(0.1)
+                            mouse1press()
+                            task.wait(0.1)
+                            mouse1release()
+                            task.wait(0.3)
+
+                            -- Upgrade Tower
+                            for u = 1, tower.upgrade do
+                                keypress("e")
+                                task.wait(0.1)
+                                keyrelease("e")
+                                task.wait(0.2)
+                            end
+                            
+                            task.wait(0.5) -- Short wait before next tower
+                        end
+                        
+                        StatusLabel:SetDesc("🟢 In-Game: Waiting for cash...")
+                        task.wait(5) 
+                    end
+                end
+            end)
+        else
+            StatusLabel:SetDesc("⚪ Bot is Idle")
+            Notify("Auto-Farm", "Bot Stopped.")
+        end
+    end
+})
+
+-- ==========================================
+-- ⌨️ PANIC KEYBIND
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if UserInputService:GetFocusedTextBox() then return end
-    if input.KeyCode == Enum.KeyCode.V then ToggleRecord()
-    elseif input.KeyCode == Enum.KeyCode.C then PlayMacro()
-    elseif input.KeyCode == Enum.KeyCode.N then
-        state.recording = false
-        state.playing = false
-        UpdateStatus()
-        Notify("PANIC", "All stopped")
+    if input.KeyCode == Enum.KeyCode.P then
+        AutoFarmActive = false
+        StatusLabel:SetDesc("⚪ Bot is Idle")
+        Notify("PANIC", "Auto-Farm stopped.")
     end
+end)
+
+-- Auto-load config on startup
+task.spawn(function()
+    task.wait(1)
+    pcall(function()
+        local success, response = pcall(function() return game:HttpGet(CONFIG_URL) end)
+        if success and response and not string.find(response, "404: Not Found") then
+            local data = HttpService:JSONDecode(response)
+            if data then
+                MapConfigs = data
+                local mapNames = {}
+                for mapName, _ in pairs(MapConfigs) do table.insert(mapNames, mapName) end
+                if #mapNames > 0 then
+                    CurrentMapName = mapNames[1]
+                    CurrentTowers = MapConfigs[CurrentMapName]
+                    MapDropdown:SetValue(CurrentMapName)
+                    MapDropdown:Refresh(mapNames)
+                    StatusLabel:SetDesc("🟢 Loaded: " .. CurrentMapName)
+                end
+            end
+        end
+    end)
 end)
