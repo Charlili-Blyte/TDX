@@ -1,5 +1,5 @@
 --[[
-    🟩 TDX MACRO HUB V18 - PREMIUM UI EDITION
+    🟩 TDX MACRO HUB V18 - PREMIUM UI EDITION (Fixed)
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -72,13 +72,12 @@ HUD_Status.Font = Enum.Font.Gotham
 HUD_Status.TextSize = 11
 HUD_Status.Parent = HUD_Frame
 
--- Function to update HUD
 local function UpdateHUD(farmState, macroState)
     HUD_Status.Text = string.format("Farm: %s | Macro: %s", farmState, macroState)
 end
 
 -- ==========================================
--- 🎨 WINDUI WINDOW (Premium Theme)
+-- 🎨 WINDUI WINDOW
 -- ==========================================
 local Window = WindUI:CreateWindow({
     Title = "🟩 TDX Ultimate",
@@ -142,7 +141,7 @@ local function click_ui_element(btn)
 end
 
 local function TDX_Join(difficulty)
-    Window:Notify({ Title = "Joining", Content = "Navigating to " .. difficulty .. "...", Duration = 3 })
+    WindUI:Notify({ Title = "Joining", Content = "Navigating to " .. difficulty .. "...", Duration = 3 })
     local soloBtn = find_ui_element("solo")
     if soloBtn then click_ui_element(soloBtn) else return end
     task.wait(2)
@@ -152,7 +151,7 @@ local function TDX_Join(difficulty)
     local diffBtn = find_ui_element(difficulty)
     if diffBtn then 
         click_ui_element(diffBtn)
-        Window:Notify({ Title = "Success", Content = "Joined " .. difficulty .. "!", Duration = 3 })
+        WindUI:Notify({ Title = "Success", Content = "Joined " .. difficulty .. "!", Duration = 3 })
     end
 end
 
@@ -203,7 +202,7 @@ FarmTab:Toggle({
         AutoFarmActive = state
         UpdateHUD(AutoFarmActive and "ON" or "OFF", state.playing and "Playing" or "Idle")
         if AutoFarmActive then
-            Window:Notify({ Title = "Auto-Farm", Content = "Started. Joining Easy...", Duration = 3 })
+            WindUI:Notify({ Title = "Auto-Farm", Content = "Started. Joining Easy...", Duration = 3 })
             task.spawn(function()
                 while AutoFarmActive do
                     local soloBtn = find_ui_element("solo")
@@ -213,7 +212,7 @@ FarmTab:Toggle({
                     end
 
                     if AutoFarmActive and not find_ui_element("solo") then
-                        Window:Notify({ Title = "Auto-Farm", Content = "Placing towers...", Duration = 3 })
+                        WindUI:Notify({ Title = "Auto-Farm", Content = "Placing towers...", Duration = 3 })
                         keypress("1")
                         task.wait(0.2)
                         keyrelease("1")
@@ -241,7 +240,7 @@ FarmTab:Toggle({
                 end
             end)
         else
-            Window:Notify({ Title = "Auto-Farm", Content = "Stopped.", Duration = 3 })
+            WindUI:Notify({ Title = "Auto-Farm", Content = "Stopped.", Duration = 3 })
         end
     end
 })
@@ -321,19 +320,19 @@ end
 local function PlayMacro()
     if state.playing then 
         state.playing = false
-        Window:Notify({ Title = "Playback", Content = "Stopped.", Duration = 2 })
+        WindUI:Notify({ Title = "Playback", Content = "Stopped.", Duration = 2 })
         UpdateHUD(AutoFarmActive and "ON" or "OFF", "Idle")
         return 
     end
     
     if not _G.StrategyName or not isfile(_G.StrategyName .. ".json") then
-        Window:Notify({ Title = "Error", Content = "Strategy file not found!", Duration = 3 })
+        WindUI:Notify({ Title = "Error", Content = "Strategy file not found!", Duration = 3 })
         return
     end
     
     local data = HttpService:JSONDecode(readfile(_G.StrategyName .. ".json"))
     state.playing = true
-    Window:Notify({ Title = "Playback", Content = "Playing...", Duration = 3 })
+    WindUI:Notify({ Title = "Playback", Content = "Playing...", Duration = 3 })
     UpdateHUD(AutoFarmActive and "ON" or "OFF", "Playing...")
     
     task.spawn(function()
@@ -360,7 +359,7 @@ local function PlayMacro()
         end
         mouse1release(); mouse2release()
         state.playing = false
-        Window:Notify({ Title = "Playback", Content = "Finished.", Duration = 3 })
+        WindUI:Notify({ Title = "Playback", Content = "Finished.", Duration = 3 })
         UpdateHUD(AutoFarmActive and "ON" or "OFF", "Idle")
     end)
 end
@@ -371,10 +370,10 @@ MacroTab:Button({
         state.recording = not state.recording 
         if state.recording then
             state.events = {}; state.last_time = os.clock()
-            Window:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
+            WindUI:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
             UpdateHUD(AutoFarmActive and "ON" or "OFF", "Recording...")
         else
-            Window:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
+            WindUI:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
             UpdateHUD(AutoFarmActive and "ON" or "OFF", "Idle")
         end
     end 
@@ -392,12 +391,15 @@ MacroTab:Button({
         if not _G.StrategyName or _G.StrategyName == "" then return end
         local compressed = compress_events(state.events)
         writefile(_G.StrategyName .. ".json", HttpService:JSONEncode(compressed))
-        Window:Notify({ Title = "Saved", Content = "Saved " .. _G.StrategyName, Duration = 3 })
+        WindUI:Notify({ Title = "Saved", Content = "Saved " .. _G.StrategyName, Duration = 3 })
         
         local files = listfiles() or {}
         local list = {}
         for _, f in ipairs(files) do
-            if string.find(f, "%.json$") then table.insert(list, string.gsub(f, "%.json$", "")) end
+            if string.find(f, "%.json$") then 
+                -- FIXED: Wrapped gsub in parentheses
+                table.insert(list, (string.gsub(f, "%.json$", ""))) 
+            end
         end
         if _G.MacroDropdown then _G.MacroDropdown:Refresh(list) end
     end
@@ -408,7 +410,10 @@ MacroTab:Divider()
 local files = listfiles() or {}
 local macroList = {}
 for _, f in ipairs(files) do
-    if string.find(f, "%.json$") then table.insert(macroList, string.gsub(f, "%.json$", "")) end
+    if string.find(f, "%.json$") then 
+        -- FIXED: Wrapped gsub in parentheses
+        table.insert(macroList, (string.gsub(f, "%.json$", ""))) 
+    end
 end
 
 _G.MacroDropdown = MacroTab:Dropdown({
@@ -422,10 +427,13 @@ MacroTab:Button({
     Callback = function()
         if _G.StrategyName and isfile(_G.StrategyName .. ".json") then
             delfile(_G.StrategyName .. ".json")
-            Window:Notify({ Title = "Deleted", Content = "Deleted " .. _G.StrategyName, Duration = 3 })
+            WindUI:Notify({ Title = "Deleted", Content = "Deleted " .. _G.StrategyName, Duration = 3 })
             local new_files = {}
             for _, f in ipairs(listfiles() or {}) do
-                if string.find(f, "%.json$") then table.insert(new_files, string.gsub(f, "%.json$", "")) end
+                if string.find(f, "%.json$") then 
+                    -- FIXED: Wrapped gsub in parentheses
+                    table.insert(new_files, (string.gsub(f, "%.json$", ""))) 
+                end
             end
             if _G.MacroDropdown then _G.MacroDropdown:Refresh(new_files) end
         end
@@ -484,17 +492,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         state.recording = not state.recording
         if state.recording then 
             state.events = {}; state.last_time = os.clock()
-            Window:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
+            WindUI:Notify({ Title = "Recorder", Content = "Recording started.", Duration = 3 })
             UpdateHUD(AutoFarmActive and "ON" or "OFF", "Recording...")
         else
-            Window:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
+            WindUI:Notify({ Title = "Recorder", Content = "Recording stopped.", Duration = 3 })
             UpdateHUD(AutoFarmActive and "ON" or "OFF", "Idle")
         end
     elseif input.KeyCode == Enum.KeyCode.F6 then
         PlayMacro()
     elseif input.KeyCode == Enum.KeyCode.F9 then
         state.recording = false; state.playing = false; AutoFarmActive = false
-        Window:Notify({ Title = "PANIC", Content = "All macros stopped.", Duration = 3 })
+        WindUI:Notify({ Title = "PANIC", Content = "All macros stopped.", Duration = 3 })
         UpdateHUD("OFF", "Idle")
     end
 end)
