@@ -1,6 +1,5 @@
 --[[
-    🟩 TDX MACRO HUB V44 - NATIVE BULLETPROOF
-    No HTTP, No External Libraries. Clicks a button to open.
+    🟩 TDX MACRO HUB V45 - NUMBER KEY FIX
 --]]
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -8,7 +7,6 @@ local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
 
--- Cleanup old UIs
 if CoreGui:FindFirstChild("TDX_NativeUI") then CoreGui.TDX_NativeUI:Destroy() end
 
 -- ==========================================
@@ -27,11 +25,23 @@ local lastTowerKey = "1"
 local lastPlacedIndex = 0
 local isAbilityArmed = false
 
--- ==========================================
--- 🧠 HELPER FUNCTIONS
--- ==========================================
+-- FIX: Map string numbers to correct Roblox Enums
+local KeyMap = {
+    ["1"] = Enum.KeyCode.One,
+    ["2"] = Enum.KeyCode.Two,
+    ["3"] = Enum.KeyCode.Three,
+    ["4"] = Enum.KeyCode.Four,
+    ["5"] = Enum.KeyCode.Five,
+    ["6"] = Enum.KeyCode.Six,
+    ["7"] = Enum.KeyCode.Seven,
+    ["8"] = Enum.KeyCode.Eight,
+    ["9"] = Enum.KeyCode.Nine,
+    ["0"] = Enum.KeyCode.Zero,
+}
+
 local function vimPressKey(keyName)
-    local key = Enum.KeyCode[keyName]
+    -- Check if it's a number key first, otherwise use the normal Enum
+    local key = KeyMap[keyName] or Enum.KeyCode[keyName]
     if key then
         VirtualInputManager:SendKeyEvent(true, key, false, game)
         task.wait(0.05)
@@ -56,19 +66,18 @@ ScreenGui.Name = "TDX_NativeUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
--- 1. The Floating Toggle Button (So you can always open it)
+-- Floating Toggle Button
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 100, 0, 30)
 ToggleBtn.Position = UDim2.new(0, 20, 0.5, -15)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-ToggleBtn.Text = "🟩 MENU"
+ToggleBtn.Text = "🟩 MENU (R-Ctrl)"
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
 ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.TextSize = 14
+ToggleBtn.TextSize = 12
 ToggleBtn.Parent = ScreenGui
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
--- 2. The Main Window
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 350, 0, 280)
 MainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
@@ -84,15 +93,16 @@ stroke.Color = Color3.fromRGB(34, 197, 94)
 stroke.Thickness = 1
 
 -- Toggle Logic
-ToggleBtn.MouseButton1Click:Connect(function()
+local function toggleUI()
     MainFrame.Visible = not MainFrame.Visible
-end)
+end
 
--- Header
+ToggleBtn.MouseButton1Click:Connect(toggleUI)
+
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX MACRO V44"
+Title.Text = "🟩 TDX MACRO V45"
 Title.TextColor3 = Color3.fromRGB(34, 197, 94)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -108,7 +118,6 @@ Status.Font = Enum.Font.Gotham
 Status.TextSize = 12
 Status.Parent = MainFrame
 
--- Buttons
 local RecBtn = Instance.new("TextButton")
 RecBtn.Size = UDim2.new(1, -20, 0, 35)
 RecBtn.Position = UDim2.new(0, 10, 0, 60)
@@ -148,18 +157,6 @@ LoopBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
 LoopBtn.Font = Enum.Font.GothamBold
 LoopBtn.Parent = MainFrame
 Instance.new("UICorner", LoopBtn).CornerRadius = UDim.new(0, 6)
-
--- Info Label
-local Info = Instance.new("TextLabel")
-Info.Size = UDim2.new(1, -20, 0, 40)
-Info.Position = UDim2.new(0, 10, 0, 235)
-Info.BackgroundTransparency = 1
-Info.Text = "Press C to cast ability (sends G). Press E to upgrade placed tower."
-Info.TextColor3 = Color3.fromRGB(150, 150, 150)
-Info.Font = Enum.Font.Gotham
-Info.TextSize = 11
-Info.TextWrapped = true
-Info.Parent = MainFrame
 
 -- ==========================================
 -- CORE LOGIC
@@ -225,9 +222,6 @@ local function togglePlay()
     end
 end
 
--- ==========================================
--- UI CONNECTIONS
--- ==========================================
 RecBtn.MouseButton1Click:Connect(toggleRecord)
 PlayBtn.MouseButton1Click:Connect(togglePlay)
 
@@ -251,7 +245,13 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if gp or not isRecording then return end
     if input.UserInputType == Enum.UserInputType.Keyboard then
         local keyName = input.KeyCode.Name
-        if string.match(keyName, "^%d$") then
+        
+        -- FIX: Check if the keyName is a number word (One, Two) and convert to string number
+        local stringNum = string.match(keyName, "One") and "1" or string.match(keyName, "Two") and "2" or string.match(keyName, "Three") and "3" or string.match(keyName, "Four") and "4"
+        
+        if stringNum then
+            lastTowerKey = stringNum
+        elseif string.match(keyName, "^%d$") then
             lastTowerKey = keyName
         elseif keyName == "E" then
             if lastPlacedIndex > 0 then
@@ -259,7 +259,6 @@ UserInputService.InputBegan:Connect(function(input, gp)
                 updateStatus()
             end
         elseif keyName == TriggerAbilityKey then
-            -- AUTO-ACTIVATE 'G' IN GAME
             vimPressKey(ActualAbilityKey)
             task.wait(0.2)
             isAbilityArmed = true
@@ -273,24 +272,15 @@ UserInputService.InputBegan:Connect(function(input, gp)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         local mouse = UserInputService:GetMouseLocation()
         if isAbilityArmed then
-            -- Record Ability Cast
             table.insert(actions, {
-                action = "cast", 
-                key = ActualAbilityKey, 
-                x = math.floor(mouse.X), 
-                y = math.floor(mouse.Y)
+                action = "cast", key = ActualAbilityKey, x = math.floor(mouse.X), y = math.floor(mouse.Y)
             })
             isAbilityArmed = false
             print("Ability Cast recorded.")
             updateStatus()
         else
-            -- Record Tower Placement
             table.insert(actions, {
-                action = "place", 
-                tower = lastTowerKey, 
-                x = math.floor(mouse.X), 
-                y = math.floor(mouse.Y), 
-                upgrades = 0
+                action = "place", tower = lastTowerKey, x = math.floor(mouse.X), y = math.floor(mouse.Y), upgrades = 0
             })
             lastPlacedIndex = #actions
             print("Tower Placement recorded.")
@@ -304,6 +294,12 @@ end)
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gp)
     if UserInputService:GetFocusedTextBox() then return end
-    if input.KeyCode.Name == RecordKey then toggleRecord() end
-    if input.KeyCode.Name == PlayKey then togglePlay() end
+    
+    if input.KeyCode.Name == RecordKey then 
+        toggleRecord() 
+    elseif input.KeyCode.Name == PlayKey then 
+        togglePlay() 
+    elseif input.KeyCode == Enum.KeyCode.RightControl then
+        toggleUI()
+    end
 end)
