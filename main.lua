@@ -1,15 +1,16 @@
 --[[
-    🟩 TDX MACRO HUB V22 - CONTEXT ACTION KEYBINDS
+    🟩 TDX MACRO HUB V23 - KEYBIND RESCUE
 --]]
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
-local ContextActionService = game:GetService("ContextActionService")
 local HttpService = game:GetService("HttpService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+
+print("🟩 V23 Script Loaded")
 
 -- ==========================================
 -- 🛡️ SECURITY
@@ -25,7 +26,7 @@ end)
 -- 🎨 WINDUI WINDOW
 -- ==========================================
 local Window = WindUI:CreateWindow({
-    Title = "🟩 TDX Massive",
+    Title = "🟩 TDX V23",
     Folder = "TDXMassive",
     Size = UDim2.fromOffset(650, 520),
     Transparent = true,
@@ -36,140 +37,9 @@ local Window = WindUI:CreateWindow({
 })
 
 local function Notify(title, text)
-    print("[TDX] " .. title .. ": " .. text)
-    pcall(function()
-        Window:Notify({ Title = title, Content = text, Duration = 3 })
-    end)
+    print("[Notification] " .. title .. ": " .. text)
+    pcall(function() Window:Notify({ Title = title, Content = text, Duration = 3 }) end)
 end
-
--- ==========================================
--- 🏠 DASHBOARD (Auto-Join)
--- ==========================================
-local DashTab = Window:Tab({ Title = "Dashboard", Icon = "home" })
-
-local function find_ui_element(target_text)
-    for _, obj in ipairs(playerGui:GetDescendants()) do
-        if (obj:IsA("TextButton") or obj:IsA("ImageButton")) then
-            if obj.Name:lower():find(target_text:lower()) then return obj end
-            if obj:IsA("TextButton") and obj.Text:lower():find(target_text:lower()) then return obj end
-        elseif obj:IsA("TextLabel") then
-            if obj.Text:lower():find(target_text:lower()) then
-                local parent_btn = obj.Parent
-                if parent_btn and (parent_btn:IsA("TextButton") or parent_btn:IsA("ImageButton")) then
-                    return parent_btn
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function click_ui_element(btn)
-    if not btn then return false end
-    if getconnections then
-        for _, sig_name in ipairs({"MouseButton1Click", "MouseButton1Down", "Activated"}) do
-            local sig = btn[sig_name]
-            if sig then
-                for _, conn in pairs(getconnections(sig)) do
-                    if conn.Enabled then pcall(function() conn:Fire() end) end
-                end
-            end
-        end
-        return true
-    end
-    if firesignal then
-        pcall(function() firesignal(btn.MouseButton1Click) end)
-        pcall(function() firesignal(btn.Activated) end)
-        return true
-    end
-    return false
-end
-
-local function TDX_Join(difficulty)
-    Notify("Joining", "Navigating to " .. difficulty)
-    local soloBtn = find_ui_element("solo")
-    if soloBtn then click_ui_element(soloBtn) else return end
-    task.wait(2)
-    local survBtn = find_ui_element("survival")
-    if survBtn then click_ui_element(survBtn) else return end
-    task.wait(2)
-    local diffBtn = find_ui_element(difficulty)
-    if diffBtn then 
-        click_ui_element(diffBtn)
-        Notify("Success", "Joined " .. difficulty)
-    end
-end
-
-DashTab:Button({ Title = "▶ Join Easy", Callback = function() task.spawn(function() TDX_Join("Easy") end) end })
-DashTab:Button({ Title = "▶ Join Intermediate", Callback = function() task.spawn(function() TDX_Join("Intermediate") end) end })
-DashTab:Button({ Title = "▶ Join Elite", Callback = function() task.spawn(function() TDX_Join("Elite") end) end })
-DashTab:Button({ Title = "▶ Join Expert", Callback = function() task.spawn(function() TDX_Join("Expert") end) end })
-
--- ==========================================
--- 🚜 AUTO-FARM
--- ==========================================
-local FarmTab = Window:Tab({ Title = "Auto-Farm", Icon = "tractor" })
-local AutoFarmActive = false
-local FarmSpots = { {x=500, y=500}, {x=600, y=500}, {x=700, y=500} }
-
-FarmTab:Input({ Title = "Spot 1 (X, Y)", Placeholder = "500, 500", Callback = function(t) 
-    local x, y = t:match("(%d+),%s*(%d+)")
-    if x and y then FarmSpots[1] = {x=tonumber(x), y=tonumber(y)} end
-end})
-FarmTab:Input({ Title = "Spot 2 (X, Y)", Placeholder = "600, 500", Callback = function(t) 
-    local x, y = t:match("(%d+),%s*(%d+)")
-    if x and y then FarmSpots[2] = {x=tonumber(x), y=tonumber(y)} end
-end})
-FarmTab:Input({ Title = "Spot 3 (X, Y)", Placeholder = "700, 500", Callback = function(t) 
-    local x, y = t:match("(%d+),%s*(%d+)")
-    if x and y then FarmSpots[3] = {x=tonumber(x), y=tonumber(y)} end
-end})
-
-FarmTab:Toggle({
-    Title = "Start Auto-Farm",
-    Desc = "Automatically joins, places, and upgrades.",
-    Value = false,
-    Callback = function(state)
-        AutoFarmActive = state
-        if AutoFarmActive then
-            Notify("Auto-Farm", "Started")
-            task.spawn(function()
-                while AutoFarmActive do
-                    local soloBtn = find_ui_element("solo")
-                    if soloBtn then
-                        TDX_Join("Easy")
-                        task.wait(20) 
-                    else
-                        keypress("1")
-                        task.wait(0.2)
-                        keyrelease("1")
-                        task.wait(0.5)
-                        for i, spot in ipairs(FarmSpots) do
-                            if not AutoFarmActive then break end
-                            mousemoveabs(spot.x, spot.y)
-                            task.wait(0.1)
-                            mouse1press()
-                            task.wait(0.1)
-                            mouse1release()
-                            task.wait(0.3)
-                            keypress("e")
-                            task.wait(0.1)
-                            keyrelease("e")
-                            task.wait(0.2)
-                            keypress("e")
-                            task.wait(0.1)
-                            keyrelease("e")
-                            task.wait(1)
-                        end
-                    end
-                    task.wait(5)
-                end
-            end)
-        else
-            Notify("Auto-Farm", "Stopped")
-        end
-    end
-})
 
 -- ==========================================
 -- ⏺ RECORDER
@@ -261,19 +131,17 @@ local function PlayMacro()
     end)
 end
 
-MacroTab:Button({ 
-    Title = "⏺ Start / Stop Recording", 
-    Callback = function() 
-        state.recording = not state.recording 
-        if state.recording then
-            state.events = {}; state.last_time = os.clock()
-            Notify("Recorder", "Recording started")
-        else
-            Notify("Recorder", "Recording stopped")
-        end
-    end 
-})
+local function ToggleRecord()
+    state.recording = not state.recording 
+    if state.recording then
+        state.events = {}; state.last_time = os.clock()
+        Notify("Recorder", "Recording started")
+    else
+        Notify("Recorder", "Recording stopped")
+    end
+end
 
+MacroTab:Button({ Title = "⏺ Start / Stop Recording [Key: [ ]", Callback = ToggleRecord })
 MacroTab:Input({ Title = "Save Name", Placeholder = "Enter Name...", Callback = function(text) _G.StrategyName = text end })
 
 MacroTab:Button({
@@ -295,47 +163,30 @@ if #macroList == 0 then table.insert(macroList, "None") end
 _G.MacroDropdown = MacroTab:Dropdown({ Title = "Select Strategy", Values = macroList, Callback = function(option) _G.StrategyName = option end })
 MacroTab:Slider({ Title = "Playback Speed", Value = { Min = 0.1, Max = 3.0, Default = 1.0 }, Step = 0.1, Callback = function(value) state.speed = value end })
 MacroTab:Toggle({ Title = "Loop Playback", Value = false, Callback = function(bool) state.loop = bool end })
-MacroTab:Button({ Title = "▶ Play Macro", Callback = PlayMacro })
+MacroTab:Button({ Title = "▶ Play Macro [Key: ]", Callback = PlayMacro })
 
 -- ==========================================
--- ⌨️ THE ULTIMATE KEYBIND FIX (ContextActionService)
+-- ⌨️ THE NEW KEYBINDS
 -- ==========================================
--- ContextActionService bypasses all UI focus bugs and executor issues.
-
-ContextActionService:BindAction("TDX_Record", function(_, state)
-    if state == Enum.UserInputState.Begin then
-        print("[Keybind] F7 Pressed")
-        -- Toggle recording
-        if _G.RecordToggle then _G.RecordToggle() end
-    end
-end, false, Enum.KeyCode.F7)
-
-ContextActionService:BindAction("TDX_Play", function(_, state)
-    if state == Enum.UserInputState.Begin then
-        print("[Keybind] F6 Pressed")
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    -- If the user is typing in the Strategy Name box, don't trigger keybinds
+    if UserInputService:GetFocusedTextBox() then return end
+    
+    -- Press '[' to Record
+    if input.KeyCode == Enum.KeyCode.LeftBracket then
+        print("Keybind Detected: Left Bracket [")
+        ToggleRecord()
+        
+    -- Press ']' to Play
+    elseif input.KeyCode == Enum.KeyCode.RightBracket then
+        print("Keybind Detected: Right Bracket ]")
         PlayMacro()
-    end
-end, false, Enum.KeyCode.F6)
-
-ContextActionService:BindAction("TDX_Panic", function(_, state)
-    if state == Enum.UserInputState.Begin then
-        print("[Keybind] F9 Pressed")
+        
+    -- Press 'P' to Panic Stop
+    elseif input.KeyCode == Enum.KeyCode.P then
+        print("Keybind Detected: P")
         state.recording = false
         state.playing = false
-        AutoFarmActive = false
         Notify("PANIC", "All macros stopped")
     end
-end, false, Enum.KeyCode.F9)
-
--- Connect the F7 action to the UI button logic
-_G.RecordToggle = function()
-    state.recording = not state.recording 
-    if state.recording then
-        state.events = {}; state.last_time = os.clock()
-        Notify("Recorder", "Recording started")
-    else
-        Notify("Recorder", "Recording stopped")
-    end
-end
-
-print("✅ V22 Keybinds Loaded Successfully")
+end)
