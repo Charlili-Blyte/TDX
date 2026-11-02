@@ -1,5 +1,5 @@
 --[[
-    🟩 TDX MACRO HUB V57 - BATTLEPASS FARMER
+    🟩 TDX MACRO HUB V58 - SIMPLE AUTO-FARMER
 --]]
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -17,10 +17,7 @@ local YOUR_JSON = [[
 ]]
 
 local actions = HttpService:JSONDecode(YOUR_JSON)
-local isPlaying = false
-local loopPlayback = false
-local upgradeMode = false -- If true, it ONLY clicks existing towers to upgrade them
-local usePhysicalClick = false
+local isFarming = false
 
 local KeyMap = {
     ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
@@ -37,42 +34,24 @@ local function vimPressKey(keyName)
 end
 
 local function performClick(x, y)
-    if usePhysicalClick then
-        mousemoveabs(x, y)
-        task.wait(0.15) 
-        mouse1press()
-        task.wait(0.05)
-        mouse1release()
-    else
-        VirtualInputManager:SendMouseMoveEvent(x, y, workspace.CurrentCamera)
-        task.wait(0.3) 
-        game:GetService("VirtualUser"):CaptureController()
-        game:GetService("VirtualUser"):ClickButton1(Vector2.new(x, y))
-    end
+    VirtualInputManager:SendMouseMoveEvent(x, y, workspace.CurrentCamera)
+    task.wait(0.25) 
+    game:GetService("VirtualUser"):CaptureController()
+    game:GetService("VirtualUser"):ClickButton1(Vector2.new(x, y))
     task.wait(0.1)
 end
 
 -- ==========================================
--- 🎨 NATIVE UI
+-- 🎨 SIMPLE UI
 -- ==========================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TDX_NativeUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
-local ToggleBtn = Instance.new("TextButton")
-ToggleBtn.Size = UDim2.new(0, 100, 0, 30)
-ToggleBtn.Position = UDim2.new(0, 20, 0.5, -15)
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-ToggleBtn.Text = "🟩 MENU (R-Ctrl)"
-ToggleBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-ToggleBtn.Font = Enum.Font.GothamBold
-ToggleBtn.Parent = ScreenGui
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
-
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 300, 0, 150)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -82,88 +61,55 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local stroke = Instance.new("UIStroke", MainFrame)
 stroke.Color = Color3.fromRGB(34, 197, 94)
 
-local function toggleUI() MainFrame.Visible = not MainFrame.Visible end
-ToggleBtn.MouseButton1Click:Connect(toggleUI)
-
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX V57 (TB Farmer)"
+Title.Text = "🟩 TDX AUTO-FARM"
 Title.TextColor3 = Color3.fromRGB(34, 197, 94)
 Title.Font = Enum.Font.GothamBold
+Title.TextSize = 16
 Title.Parent = MainFrame
 
-local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(1, -20, 0, 45)
-PlayBtn.Position = UDim2.new(0, 10, 0, 40)
-PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
-PlayBtn.Text = "▶ START FARMING (X)"
-PlayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-PlayBtn.Font = Enum.Font.GothamBold
-PlayBtn.TextSize = 16
-PlayBtn.Parent = MainFrame
-Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 6)
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1, -20, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 50)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
+ToggleBtn.Text = "▶ START FARMING"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 16
+ToggleBtn.Parent = MainFrame
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
--- Upgrade Mode Toggle
-local UpgradeBtn = Instance.new("TextButton")
-UpgradeBtn.Size = UDim2.new(1, -20, 0, 35)
-UpgradeBtn.Position = UDim2.new(0, 10, 0, 95)
-UpgradeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-UpgradeBtn.Text = "Mode: Build & Upgrade"
-UpgradeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-UpgradeBtn.Font = Enum.Font.GothamBold
-UpgradeBtn.Parent = MainFrame
-Instance.new("UICorner", UpgradeBtn).CornerRadius = UDim.new(0, 6)
-
--- Click Mode Toggle
-local ClickBtn = Instance.new("TextButton")
-ClickBtn.Size = UDim2.new(1, -20, 0, 35)
-ClickBtn.Position = UDim2.new(0, 10, 0, 140)
-ClickBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ClickBtn.Text = "Clicks: Virtual (No Cursor)"
-ClickBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-ClickBtn.Font = Enum.Font.GothamBold
-ClickBtn.Parent = MainFrame
-Instance.new("UICorner", ClickBtn).CornerRadius = UDim.new(0, 6)
-
-local LoopBtn = Instance.new("TextButton")
-LoopBtn.Size = UDim2.new(1, -20, 0, 35)
-LoopBtn.Position = UDim2.new(0, 10, 0, 185)
-LoopBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-LoopBtn.Text = "Loop: OFF"
-LoopBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-LoopBtn.Font = Enum.Font.GothamBold
-LoopBtn.Parent = MainFrame
-Instance.new("UICorner", LoopBtn).CornerRadius = UDim.new(0, 6)
-
-local Info = Instance.new("TextLabel")
-Info.Size = UDim2.new(1, -20, 0, 60)
-Info.Position = UDim2.new(0, 10, 0, 230)
-Info.BackgroundTransparency = 1
-Info.Text = "For TB Part 2: Turn Loop ON. It will build, upgrade, and cast abilities infinitely."
-Info.TextColor3 = Color3.fromRGB(200, 150, 50)
-Info.Font = Enum.Font.Gotham
-Info.TextSize = 11
-Info.TextWrapped = true
-Info.Parent = MainFrame
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1, -20, 0, 30)
+Status.Position = UDim2.new(0, 10, 0, 110)
+Status.BackgroundTransparency = 1
+Status.Text = "Status: Idle"
+Status.TextColor3 = Color3.fromRGB(200, 200, 200)
+Status.Font = Enum.Font.Gotham
+Status.TextSize = 12
+Status.Parent = MainFrame
 
 -- ==========================================
--- CORE LOGIC
+-- CORE LOOP (Build, Upgrade, Repeat)
 -- ==========================================
-local function togglePlay()
-    if #actions == 0 then return end
-    isPlaying = not isPlaying
+ToggleBtn.MouseButton1Click:Connect(function()
+    isFarming = not isFarming
     
-    if isPlaying then
-        PlayBtn.Text = "⏹ STOP FARMING"
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    if isFarming then
+        ToggleBtn.Text = "⏹ STOP FARMING"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        Status.Text = "Status: Aim Camera! Starting in 3s..."
         
         task.spawn(function()
-            task.wait(3) -- Time to aim camera
+            task.wait(3)
             
-            repeat
+            local isFirstLoop = true
+            
+            while isFarming do
                 for i, act in ipairs(actions) do
-                    if not isPlaying then break end
+                    if not isFarming then break end
                     
                     local worldPos = Vector3.new(act.x, act.y, act.z)
                     local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(worldPos)
@@ -173,17 +119,18 @@ local function togglePlay()
                         local clickY = math.floor(screenPos.Y)
                         
                         if act.action == "place" then
-                            -- In Upgrade Mode, we don't press the tower number, we just click the tower and press E
-                            if not upgradeMode then
+                            -- Only press the tower key on the first loop (to place them)
+                            if isFirstLoop then
                                 vimPressKey(act.tower)
                                 task.wait(0.2)
                             end
                             
+                            -- Click the spot (places tower first loop, upgrades it later)
                             performClick(clickX, clickY)
                             task.wait(0.2)
                             
-                            -- Press E (Upgrade) either the recorded amount, or just spam it in upgrade mode
-                            local upgradesToDo = upgradeMode and 2 or act.upgrades
+                            -- Press E (Upgrade). If first loop, do recorded amount. If later, spam it.
+                            local upgradesToDo = isFirstLoop and act.upgrades or 2
                             for u = 1, upgradesToDo do 
                                 vimPressKey("E")
                                 task.wait(0.2) 
@@ -199,58 +146,18 @@ local function togglePlay()
                     task.wait(0.1)
                 end
                 
-                -- If loop is on, wait a bit before spamming again so we don't get kicked
-                if loopPlayback and isPlaying then 
-                    task.wait(2) 
-                end
-            until not loopPlayback or not isPlaying
+                isFirstLoop = false
+                Status.Text = "Status: Looping upgrades & abilities..."
+                task.wait(2) -- Wait 2 seconds before looping again
+            end
             
-            isPlaying = false
-            PlayBtn.Text = "▶ START FARMING (X)"
-            PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
+            ToggleBtn.Text = "▶ START FARMING"
+            ToggleBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
+            Status.Text = "Status: Stopped"
         end)
     else
-        PlayBtn.Text = "▶ START FARMING (X)"
-        PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
+        ToggleBtn.Text = "▶ START FARMING"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
+        Status.Text = "Status: Stopped"
     end
-end
-
-PlayBtn.MouseButton1Click:Connect(togglePlay)
-
-UpgradeBtn.MouseButton1Click:Connect(function()
-    upgradeMode = not upgradeMode
-    if upgradeMode then
-        UpgradeBtn.Text = "Mode: Upgrade/Ability Only"
-        UpgradeBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-        UpgradeBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        UpgradeBtn.Text = "Mode: Build & Upgrade"
-        UpgradeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        UpgradeBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end)
-
-ClickBtn.MouseButton1Click:Connect(function()
-    usePhysicalClick = not usePhysicalClick
-    if usePhysicalClick then
-        ClickBtn.Text = "Clicks: Physical (Perfect)"
-        ClickBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-        ClickBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-    else
-        ClickBtn.Text = "Clicks: Virtual (No Cursor)"
-        ClickBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-        ClickBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end)
-
-LoopBtn.MouseButton1Click:Connect(function()
-    loopPlayback = not loopPlayback
-    LoopBtn.Text = loopPlayback and "Loop: ON" or "Loop: OFF"
-    LoopBtn.BackgroundColor3 = loopPlayback and Color3.fromRGB(34, 197, 94) or Color3.fromRGB(40, 40, 40)
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if UserInputService:GetFocusedTextBox() then return end
-    if input.KeyCode.Name == "X" then togglePlay() 
-    elseif input.KeyCode == Enum.KeyCode.RightControl then toggleUI() end
 end)
