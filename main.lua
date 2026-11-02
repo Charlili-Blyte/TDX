@@ -1,8 +1,9 @@
 --[[
-    🟩 TDX MACRO HUB V47 - CLIPBOARD SAVE
+    🟩 TDX MACRO HUB V54 - CUSTOM 3D LAYOUT
 --]]
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
+local VirtualUser = game:GetService("VirtualUser")
 local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local CoreGui = game:GetService("CoreGui")
@@ -10,20 +11,15 @@ local CoreGui = game:GetService("CoreGui")
 if CoreGui:FindFirstChild("TDX_NativeUI") then CoreGui.TDX_NativeUI:Destroy() end
 
 -- ==========================================
--- 🔑 SETTINGS
+-- 🔑 YOUR CUSTOM 3D MACRO DATA
 -- ==========================================
-local RecordKey = "Z"
-local PlayKey = "X"
-local TriggerAbilityKey = "C" 
-local ActualAbilityKey = "G" 
+local YOUR_JSON = [[
+[{"y":16.547216415405275,"x":-57.132423400878909,"action":"place","z":-37.94575881958008,"upgrades":2,"tower":"2"},{"y":16.547216415405275,"x":-60.46790313720703,"action":"place","z":-38.06884765625,"upgrades":0,"tower":"4"},{"y":16.547216415405275,"x":-60.53814697265625,"action":"place","z":-38.01384735107422,"upgrades":0,"tower":"4"},{"y":16.547216415405275,"x":-60.61048126220703,"action":"place","z":-37.926902770996097,"upgrades":2,"tower":"4"},{"y":16.547216415405275,"x":-63.69281005859375,"action":"place","z":-37.6545295715332,"upgrades":1,"tower":"4"},{"y":16.547216415405275,"x":-44.16004943847656,"action":"cast","z":-34.6505126953125,"key":"G"},{"y":16.547216415405275,"x":-65.5914306640625,"action":"place","z":-37.44615936279297,"upgrades":0,"tower":"4"},{"y":16.547216415405275,"x":-65.08610534667969,"action":"place","z":-37.93526840209961,"upgrades":0,"tower":"4"},{"y":19.047216415405275,"x":-54.4071044921875,"action":"place","z":-39.014198303222659,"upgrades":0,"tower":"4"},{"y":16.547216415405275,"x":-59.54098892211914,"action":"place","z":-47.763370513916019,"upgrades":10,"tower":"1"},{"y":16.952802658081056,"x":-42.363807678222659,"action":"place","z":-73.71357727050781,"upgrades":0,"tower":"1"},{"y":16.547216415405275,"x":-40.28097152709961,"action":"place","z":-105.18995666503906,"upgrades":0,"tower":"3"},{"y":17.705970764160158,"x":-46.51573944091797,"action":"place","z":-114.99760437011719,"upgrades":0,"tower":"3"},{"y":17.705970764160158,"x":-39.40329360961914,"action":"place","z":-131.9550323486328,"upgrades":0,"tower":"3"},{"y":17.705963134765626,"x":-45.47077941894531,"action":"place","z":-115.96961975097656,"upgrades":0,"tower":"3"},{"y":17.705970764160158,"x":-53.509456634521487,"action":"place","z":-122.50880432128906,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-48.868736267089847,"action":"place","z":-111.0182876586914,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-58.60747528076172,"action":"place","z":-110.29446411132813,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-57.58295822143555,"action":"place","z":-128.09588623046876,"upgrades":0,"tower":"3"},{"y":17.705970764160158,"x":-72.60420989990235,"action":"place","z":-123.0303955078125,"upgrades":0,"tower":"3"},{"y":17.80330467224121,"x":-65.29105377197266,"action":"place","z":-101.697021484375,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-61.944297790527347,"action":"place","z":-132.1019287109375,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-59.429019927978519,"action":"place","z":-94.41914367675781,"upgrades":0,"tower":"3"},{"y":16.547216415405275,"x":-61.6287727355957,"action":"place","z":-118.44432067871094,"upgrades":0,"tower":"3"},{"y":17.819719314575197,"x":-61.97739791870117,"action":"place","z":-49.07274627685547,"upgrades":0,"tower":"1"},{"y":17.81972312927246,"x":-67.88981628417969,"action":"place","z":-49.191287994384769,"upgrades":7,"tower":"1"}]
+]]
 
-local isRecording = false
+local actions = HttpService:JSONDecode(YOUR_JSON)
 local isPlaying = false
 local loopPlayback = false
-local actions = {}
-local lastTowerKey = "1"
-local lastPlacedIndex = 0
-local isAbilityArmed = false
 
 local KeyMap = {
     ["1"] = Enum.KeyCode.One, ["2"] = Enum.KeyCode.Two, ["3"] = Enum.KeyCode.Three,
@@ -39,13 +35,12 @@ local function vimPressKey(keyName)
     end
 end
 
-local function vimClick(x, y)
-    local cam = workspace.CurrentCamera
-    VirtualInputManager:SendMouseMoveEvent(x, y, cam)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+local function backgroundClick(x, y)
+    VirtualInputManager:SendMouseMoveEvent(x, y, workspace.CurrentCamera)
+    task.wait(0.15) 
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton1(Vector2.new(x, y))
+    task.wait(0.1)
 end
 
 -- ==========================================
@@ -67,8 +62,8 @@ ToggleBtn.Parent = ScreenGui
 Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 350, 0, 320)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -160)
+MainFrame.Size = UDim2.new(0, 350, 0, 260)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -130)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -84,7 +79,7 @@ ToggleBtn.MouseButton1Click:Connect(toggleUI)
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 30)
 Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX MACRO V47"
+Title.Text = "🟩 TDX MACRO V54"
 Title.TextColor3 = Color3.fromRGB(34, 197, 94)
 Title.Font = Enum.Font.GothamBold
 Title.Parent = MainFrame
@@ -93,45 +88,25 @@ local Status = Instance.new("TextLabel")
 Status.Size = UDim2.new(1, 0, 0, 20)
 Status.Position = UDim2.new(0, 0, 0, 30)
 Status.BackgroundTransparency = 1
-Status.Text = "Status: Idle"
+Status.Text = "Status: " .. #actions .. " actions pre-loaded"
 Status.TextColor3 = Color3.fromRGB(200, 200, 200)
 Status.Font = Enum.Font.Gotham
 Status.Parent = MainFrame
 
-local RecBtn = Instance.new("TextButton")
-RecBtn.Size = UDim2.new(1, -20, 0, 35)
-RecBtn.Position = UDim2.new(0, 10, 0, 60)
-RecBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-RecBtn.Text = "⏺ START RECORDING (Z)"
-RecBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-RecBtn.Font = Enum.Font.GothamBold
-RecBtn.Parent = MainFrame
-Instance.new("UICorner", RecBtn).CornerRadius = UDim.new(0, 6)
-
 local PlayBtn = Instance.new("TextButton")
-PlayBtn.Size = UDim2.new(1, -20, 0, 35)
-PlayBtn.Position = UDim2.new(0, 10, 0, 105)
+PlayBtn.Size = UDim2.new(1, -20, 0, 45)
+PlayBtn.Position = UDim2.new(0, 10, 0, 60)
 PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
-PlayBtn.Text = "▶ PLAY MACRO (X)"
+PlayBtn.Text = "▶ START BUILDING (X)"
 PlayBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 PlayBtn.Font = Enum.Font.GothamBold
+PlayBtn.TextSize = 16
 PlayBtn.Parent = MainFrame
 Instance.new("UICorner", PlayBtn).CornerRadius = UDim.new(0, 6)
 
--- SAVE & LOAD
-local SaveBtn = Instance.new("TextButton")
-SaveBtn.Size = UDim2.new(1, -20, 0, 35)
-SaveBtn.Position = UDim2.new(0, 10, 0, 150)
-SaveBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-SaveBtn.Text = "💾 Copy JSON to Clipboard"
-SaveBtn.TextColor3 = Color3.fromRGB(0, 0, 0)
-SaveBtn.Font = Enum.Font.GothamBold
-SaveBtn.Parent = MainFrame
-Instance.new("UICorner", SaveBtn).CornerRadius = UDim.new(0, 6)
-
 local LoopBtn = Instance.new("TextButton")
-LoopBtn.Size = UDim2.new(1, -20, 0, 30)
-LoopBtn.Position = UDim2.new(0, 10, 0, 195)
+LoopBtn.Size = UDim2.new(1, -20, 0, 35)
+LoopBtn.Position = UDim2.new(0, 10, 0, 115)
 LoopBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 LoopBtn.Text = "Loop: OFF"
 LoopBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -139,94 +114,71 @@ LoopBtn.Font = Enum.Font.GothamBold
 LoopBtn.Parent = MainFrame
 Instance.new("UICorner", LoopBtn).CornerRadius = UDim.new(0, 6)
 
+local Info = Instance.new("TextLabel")
+Info.Size = UDim2.new(1, -20, 0, 80)
+Info.Position = UDim2.new(0, 10, 0, 160)
+Info.BackgroundTransparency = 1
+Info.Text = "This layout uses 3D World Coordinates. You can move your camera anywhere! Just make sure your camera is pointing somewhat towards the map when you start."
+Info.TextColor3 = Color3.fromRGB(200, 150, 50)
+Info.Font = Enum.Font.Gotham
+Info.TextSize = 11
+Info.TextWrapped = true
+Info.Parent = MainFrame
+
 -- ==========================================
 -- CORE LOGIC
 -- ==========================================
-local function updateStatus()
-    if isRecording then
-        Status.Text = "Status: 🔴 RECORDING (" .. #actions .. " actions)"
-        Status.TextColor3 = Color3.fromRGB(200, 50, 50)
-    else
-        Status.Text = "Status: Idle (" .. #actions .. " actions loaded)"
-        Status.TextColor3 = Color3.fromRGB(200, 200, 200)
-    end
-end
-
-local function toggleRecord()
-    if isPlaying then return end
-    isRecording = not isRecording
-    if isRecording then
-        actions = {}; lastPlacedIndex = 0; isAbilityArmed = false
-        RecBtn.Text = "⏹ STOP RECORDING"
-        RecBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    else
-        RecBtn.Text = "⏺ START RECORDING (Z)"
-        RecBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    end
-    updateStatus()
-end
-
 local function togglePlay()
-    if isRecording or #actions == 0 then return end
+    if #actions == 0 then return end
     isPlaying = not isPlaying
     
     if isPlaying then
-        PlayBtn.Text = "⏹ STOP PLAYING"
+        PlayBtn.Text = "⏹ STOP BUILDING"
         PlayBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        
         task.spawn(function()
             repeat
                 for i, act in ipairs(actions) do
                     if not isPlaying then break end
-                    if act.action == "place" then
-                        vimPressKey(act.tower)
-                        task.wait(0.2)
-                        vimClick(act.x, act.y)
-                        task.wait(0.2)
-                        for u = 1, act.upgrades do vimPressKey("E"); task.wait(0.3) end
-                    elseif act.action == "cast" then
-                        vimPressKey(act.key)
-                        task.wait(0.3)
-                        vimClick(act.x, act.y)
-                        task.wait(0.3)
+                    
+                    -- 3D TO 2D CONVERSION
+                    local worldPos = Vector3.new(act.x, act.y, act.z)
+                    local screenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(worldPos)
+                    
+                    if onScreen then
+                        local clickX = math.floor(screenPos.X)
+                        local clickY = math.floor(screenPos.Y)
+                        
+                        if act.action == "place" then
+                            vimPressKey(act.tower)
+                            task.wait(0.2)
+                            backgroundClick(clickX, clickY)
+                            task.wait(0.2)
+                            for u = 1, act.upgrades do vimPressKey("E"); task.wait(0.3) end
+                        elseif act.action == "cast" then
+                            vimPressKey(act.key)
+                            task.wait(0.3)
+                            backgroundClick(clickX, clickY)
+                            task.wait(0.3)
+                        end
+                    else
+                        print("⚠️ Tower at " .. tostring(worldPos) .. " is off-screen! Move your camera.")
                     end
-                    task.wait(0.5)
+                    task.wait(0.3)
                 end
                 if loopPlayback and isPlaying then task.wait(5) end
             until not loopPlayback or not isPlaying
             isPlaying = false
-            PlayBtn.Text = "▶ PLAY MACRO (X)"
+            PlayBtn.Text = "▶ START BUILDING (X)"
             PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
         end)
     else
-        PlayBtn.Text = "▶ PLAY MACRO (X)"
+        PlayBtn.Text = "▶ START BUILDING (X)"
         PlayBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
     end
 end
 
--- ==========================================
--- UI CONNECTIONS
--- ==========================================
-RecBtn.MouseButton1Click:Connect(toggleRecord)
 PlayBtn.MouseButton1Click:Connect(togglePlay)
-
-SaveBtn.MouseButton1Click:Connect(function()
-    if #actions == 0 then return end
-    local json = HttpService:JSONEncode(actions)
-    
-    -- Try to copy to clipboard
-    if setclipboard then
-        setclipboard(json)
-        print("✅ JSON Copied to your Windows Clipboard! Just press Ctrl+V in notepad.")
-        Status.Text = "Status: Copied to Clipboard!"
-    else
-        print("❌ Your executor doesn't support setclipboard.")
-    end
-    
-    -- Also print to F9 just in case
-    print("========================================")
-    print(json)
-    print("========================================")
-end)
 
 LoopBtn.MouseButton1Click:Connect(function()
     loopPlayback = not loopPlayback
@@ -235,51 +187,10 @@ LoopBtn.MouseButton1Click:Connect(function()
 end)
 
 -- ==========================================
--- RECORDING LISTENERS
+-- GLOBAL KEYBINDS
 -- ==========================================
 UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or not isRecording then return end
-    if input.UserInputType == Enum.UserInputType.Keyboard then
-        local keyName = input.KeyCode.Name
-        local stringNum = string.match(keyName, "One") and "1" or string.match(keyName, "Two") and "2" or string.match(keyName, "Three") and "3" or string.match(keyName, "Four") and "4"
-        
-        if stringNum then
-            lastTowerKey = stringNum
-        elseif string.match(keyName, "^%d$") then
-            lastTowerKey = keyName
-        elseif keyName == "E" then
-            if lastPlacedIndex > 0 then
-                actions[lastPlacedIndex].upgrades = actions[lastPlacedIndex].upgrades + 1
-                updateStatus()
-            end
-        elseif keyName == TriggerAbilityKey then
-            vimPressKey(ActualAbilityKey)
-            task.wait(0.2)
-            isAbilityArmed = true
-            print("Ability armed. Click the ground.")
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp or not isRecording then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        local mouse = UserInputService:GetMouseLocation()
-        if isAbilityArmed then
-            table.insert(actions, { action = "cast", key = ActualAbilityKey, x = math.floor(mouse.X), y = math.floor(mouse.Y) })
-            isAbilityArmed = false
-            updateStatus()
-        else
-            table.insert(actions, { action = "place", tower = lastTowerKey, x = math.floor(mouse.X), y = math.floor(mouse.Y), upgrades = 0 })
-            lastPlacedIndex = #actions
-            updateStatus()
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
     if UserInputService:GetFocusedTextBox() then return end
-    if input.KeyCode.Name == RecordKey then toggleRecord() 
-    elseif input.KeyCode.Name == PlayKey then togglePlay() 
+    if input.KeyCode.Name == "X" then togglePlay() 
     elseif input.KeyCode == Enum.KeyCode.RightControl then toggleUI() end
 end)
