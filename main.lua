@@ -1,5 +1,5 @@
 --[[
-    🟩 TDX MACRO - TRUE BACKGROUND ENGINE (V65)
+    🟩 TDX MACRO - LOCKED CAMERA BACKGROUND ENGINE (V67)
 --]]
 
 local VirtualInputManager = game:GetService("VirtualInputManager")
@@ -37,7 +37,7 @@ end)
 -- 🔑 YOUR CUSTOM JSON DATA
 -- ==========================================
 local YOUR_JSON = [[
-[{"y":16.547216415405275,"x":-57.15726089477539,"action":"place","z":-38.112632751464847,"upgrades":0,"tower":"Two"},{"y":16.547216415405275,"x":-70.43546295166016,"action":"place","z":-35.155548095703128,"upgrades":0,"tower":"Two"},{"y":16.547216415405275,"x":-67.4132308959961,"action":"place","z":-37.643497467041019,"upgrades":0,"tower":"Four"},{"y":18.077964782714845,"x":-85.8264389038086,"action":"place","z":-37.25018310546875,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-70.36256408691406,"action":"place","z":-37.060035705566409,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-71.01405334472656,"action":"place","z":-37.07338333129883,"upgrades":0,"tower":"Four"},{"y":18.063230514526368,"x":-63.32764434814453,"action":"cast","z":-17.125755310058595,"key":"G"},{"y":16.547216415405275,"x":-71.17579650878906,"action":"place","z":-34.197486877441409,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-71.98799896240235,"action":"place","z":-35.17649841308594,"upgrades":0,"tower":"Four"},{"y":16.644784927368165,"x":-72.32939147949219,"action":"place","z":-36.79285430908203,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-71.1760482788086,"action":"place","z":-34.99727249145508,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-66.9219970703125,"action":"place","z":-47.783687591552737,"upgrades":0,"tower":"One"},{"y":17.705970764160158,"x":-72.50669860839844,"action":"place","z":-21.932170867919923,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.4161376953125,"action":"place","z":-46.81901931762695,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.4161376953125,"action":"place","z":-46.81901931762695,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-66.59217071533203,"action":"place","z":-48.58888244628906,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-66.59217071533203,"action":"place","z":-48.58888244628906,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.2519760131836,"action":"place","z":-48.58956527709961,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.2519760131836,"action":"place","z":-48.58956527709961,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.2519760131836,"action":"place","z":-48.58956527709961,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-67.08705139160156,"action":"place","z":-48.267269134521487,"upgrades":0,"tower":"One"},{"y":17.81972312927246,"x":-62.612178802490237,"action":"place","z":-48.27387237548828,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-65.10209655761719,"action":"place","z":-48.10254669189453,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-66.75638580322266,"action":"place","z":-45.849464416503909,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-66.59196472167969,"action":"place","z":-47.944095611572269,"upgrades":0,"tower":"One"},{"y":17.705970764160158,"x":-56.388038635253909,"action":"place","z":-43.07316207885742,"upgrades":0,"tower":"One"},{"y":17.03580665588379,"x":-63.56126403808594,"action":"place","z":-37.623390197753909,"upgrades":0,"tower":"One"},{"y":19.047216415405275,"x":-60.480262756347659,"action":"place","z":-38.106632232666019,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-65.09500122070313,"action":"place","z":-25.640220642089845,"upgrades":0,"tower":"One"}]
+[{"y":16.547216415405275,"x":-60.438072204589847,"action":"place","z":-37.13102722167969,"upgrades":0,"tower":"Two"},{"y":16.547216415405275,"x":-62.767818450927737,"action":"place","z":-35.27532196044922,"upgrades":0,"tower":"Two"},{"y":16.547216415405275,"x":-64.13795471191406,"action":"place","z":-36.81753158569336,"upgrades":0,"tower":"Four"},{"y":16.547216415405275,"x":-67.40562438964844,"action":"place","z":-37.11024475097656,"upgrades":0,"tower":"Seven"},{"y":16.547216415405275,"x":-67.61701965332031,"action":"place","z":-37.02852249145508,"upgrades":0,"tower":"Seven"},{"y":16.547216415405275,"x":-66.61177062988281,"action":"place","z":-31.423381805419923,"upgrades":0,"tower":"Seven"},{"y":16.547216415405275,"x":-66.90421295166016,"action":"place","z":-37.644596099853519,"upgrades":0,"tower":"Seven"},{"y":16.547216415405275,"x":-65.92965698242188,"action":"cast","z":-30.11572265625,"key":"G"},{"y":17.705970764160158,"x":-56.666465759277347,"action":"place","z":-40.545841217041019,"upgrades":0,"tower":"One"},{"y":17.705963134765626,"x":-55.464088439941409,"action":"place","z":-40.096466064453128,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-55.52960968017578,"action":"place","z":-40.72712707519531,"upgrades":0,"tower":"One"},{"y":17.705970764160158,"x":-54.19541931152344,"action":"place","z":-40.567195892333987,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-56.3300666809082,"action":"place","z":-41.13908767700195,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-54.13179016113281,"action":"place","z":-41.509788513183597,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-54.58381652832031,"action":"place","z":-41.10218811035156,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-54.07164001464844,"action":"place","z":-41.1390380859375,"upgrades":0,"tower":"One"},{"y":17.705970764160158,"x":-54.64346694946289,"action":"place","z":-41.44472885131836,"upgrades":0,"tower":"One"},{"y":17.705970764160158,"x":-54.86902618408203,"action":"place","z":-41.29194259643555,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-54.97953414916992,"action":"place","z":-40.965484619140628,"upgrades":0,"tower":"One"},{"y":17.70596694946289,"x":-52.18132019042969,"action":"place","z":-49.40530014038086,"upgrades":0,"tower":"One"},{"y":16.547216415405275,"x":-56.15593719482422,"action":"place","z":-48.59739685058594,"upgrades":0,"tower":"One"}]
 ]]
 
 local actions = HttpService:JSONDecode(YOUR_JSON)
@@ -83,16 +83,11 @@ local function vimPressKey(keyName)
     end
 end
 
--- 🟢 TRUE BACKGROUND CLICK (No Physical Mouse Movement)
 local function backgroundClick(x, y)
-    -- 1. Move the invisible virtual mouse
     VirtualInputManager:SendMouseMoveEvent(x, y, workspace.CurrentCamera)
-    -- 2. Wait for the game engine to register the hover
     task.wait(0.25) 
-    -- 3. Inject the click
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
-    task.wait(0.05)
-    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton1(Vector2.new(x, y))
     task.wait(0.1)
 end
 
@@ -184,7 +179,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -20, 1, 0)
 Title.Position = UDim2.new(0, 15, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "🟩 TDX BACKGROUND FARMER"
+Title.Text = "🟩 TDX LOCKED ENGINE"
 Title.TextColor3 = Theme.Accent
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
@@ -247,7 +242,7 @@ switchTab(RecPage, RecTabBtn, EngPage, EngTabBtn)
 local RecStatus = Instance.new("TextLabel")
 RecStatus.Size = UDim2.new(1, 0, 0, 20)
 RecStatus.BackgroundTransparency = 1
-RecStatus.Text = "Status: Idle (29 actions loaded)"
+RecStatus.Text = "Status: Idle (21 actions loaded)"
 RecStatus.TextColor3 = Theme.Text
 RecStatus.Font = Enum.Font.Gotham
 RecStatus.TextXAlignment = Enum.TextXAlignment.Left
@@ -288,7 +283,7 @@ local Info = Instance.new("TextLabel")
 Info.Size = UDim2.new(1, 0, 0, 100)
 Info.Position = UDim2.new(0, 0, 0, 100)
 Info.BackgroundTransparency = 1
-Info.Text = "Background Mode Active:\nYou can use your mouse and keyboard normally while this runs. Do not minimize Roblox completely, or the 3D math will fail."
+Info.Text = "Camera Lock is ACTIVE. You cannot move your camera while farming to ensure 3D placements are perfect."
 Info.TextColor3 = Theme.SubText
 Info.Font = Enum.Font.Gotham
 Info.TextSize = 12
@@ -327,8 +322,11 @@ local function togglePlay()
         RunBtn.Text = "⏹ STOP AUTO-FARM"
         RunBtn.BackgroundColor3 = Theme.Danger
         
-        -- We removed the camera lock so it can run in the background without fighting you
-        
+        -- 🟢 PUTTING THE CAMERA LOCK BACK TO FIX PLACEMENTS
+        cameraLock = RunService.RenderStepped:Connect(function()
+            if isRunning and savedCamera then workspace.CurrentCamera.CFrame = savedCamera end
+        end)
+
         task.spawn(function()
             if findUI("solo") then autoJoin() end
             local hasBuilt = false
@@ -399,6 +397,7 @@ local function togglePlay()
         end)
     else
         isRunning = false
+        if cameraLock then cameraLock:Disconnect() end
         RunBtn.Text = "▶ START AUTO-FARM [X]"
         RunBtn.BackgroundColor3 = Color3.fromRGB(59, 130, 246)
         EngStatus.Text = "Phase: Idle"
